@@ -2,12 +2,27 @@ moment.locale('fr');
 
 (function ( $ ) {
 
+    var hours = [8,9,10,11,12,13,14,15,16,17];
+
+    //EVENTS
+    var events = [{
+      agent: "Benoit Rastier",
+      start: "07/08/2017 08:45",
+      end: "07/08/2017 17:00",
+    },{
+      agent: "Lionel Tarlet",
+      start: "09/08/2017 10:00",
+      end: "10/08/2017 14:30",
+    }];
+
+
     var shade = "#556b2f";
     var self = undefined;
     var startDate = undefined;
     var dateRange = undefined;
     var daysRange = undefined;
     var hoursRange = undefined;
+    var agentTable = undefined;
     var agents = ["Benoit Rastier","Charles Cluzel","Matthieu Nowak","Nicolas Maniez","Florent Quétaud","Joel Pelhate","Nicolas Villain","Lionel Tarlet","Jerome Papuchon","Yoann Pachet"];
 
     var selector = undefined;
@@ -43,11 +58,45 @@ moment.locale('fr');
         paintHours();
 
         //Set agents list
-        setAgentList($(".agents",scheduler));
+        agentTable = $(".agents",scheduler);
+        setAgentList();
 
         bindEvent(scheduler);
 
         $(self).html(scheduler);
+
+        events.forEach(function(element){
+          var where = $('tr[data-agent="'+element.agent+'"] .grid .row',agentTable);
+
+          var start = moment(element.start,"DD/MM/YYYY HH:mm");
+          var quarters = $('.quarter:nth-child('+start.day()+')',where);
+          var quarterchilds =  $('.quarter-child:nth-child('+(hours.indexOf(start.hours())+1)+')',quarters);
+          var left = $('td:nth-child('+(Math.trunc(start.minutes() / 15)+1)+')',quarterchilds).offset().left - 160;
+
+          var end = moment(element.end,"DD/MM/YYYY HH:mm");
+          var quartere = $('.quarter:nth-child('+end.day()+')',where);
+          var quarterchilde =  $('.quarter-child:nth-child('+(hours.indexOf(end.hours())+1)+')',quartere);
+          var right = $('td:nth-child('+(Math.trunc(end.minutes() / 15)+1)+')',quarterchilde);
+
+          var width = (right.offset().left - 160) - left + right.width();
+
+          where.append('<tr class="event" style="left:'+left+'px;width:'+width+'px"><td></td></tr>');
+
+          /*startDay = Math.trunc(($(window).width() - 160) / 5) * startDay;
+
+          var startHours = hours.indexOf(start.hours());
+          startHours = Math.trunc(startDay/10) * startHours;
+
+          var quarter = Math.trunc(start.minutes() / 15);
+          quarter = Math.trunc(startDay/40) * quarter;
+
+          var left = startHours + quarter;
+
+          where.append('<tr class="event" style="left:'+left+'px"><td></td></tr>');*/
+
+          //var end = moment(element.end,"DD/MM/YYYY hh:ss").day();
+        });
+
       });
     };
 
@@ -64,18 +113,6 @@ moment.locale('fr');
         }
       });
 
-      /*$(".quarter",scheduler).bind("click",function(event){
-        //alert("toto");
-        var clickedElement = $(event.target);
-        previousElement = clickedElement;
-
-        mousePosition = event.pageX;
-        setSelectorDisplayed("block");
-        setSelectorWidth(clickedElement.width()+1);
-        setSelectorPosition(clickedElement.position().top,clickedElement.position().left);
-
-      });*/
-
       //lorsque le clique de la souris est pressé
       $(".grid",scheduler).mousedown(function(e) {
           // You can record the starting position with
@@ -84,10 +121,14 @@ moment.locale('fr');
           mouseState = true;
 
           var clickedElement = $(e.target);
-          var start_x = clickedElement.position().left;
+          //var start_x = clickedElement.position().left;
+          var start_x = clickedElement.offset().left;
+          var scroll = $('.planning',scheduler).scrollTop();
 
           setSelectorDisplayed("block");
-          setSelectorPosition(clickedElement.position().top,start_x,"auto");
+          setSelectorPosition(clickedElement.offset().top + scroll - 139
+          ,start_x
+          ,"auto");
 
           $(".planning",scheduler).mousemove(function(e) {
             if(e.pageX > 160){
@@ -118,9 +159,9 @@ moment.locale('fr');
 
         element = $(document.elementFromPoint(event.pageX,event.pageY));
         if(direction == 'right'){
-          selector.css('right',$(window).width() - (element.position().left+element.width()+1));
+          selector.css('right',$(window).width() - (element.offset().left+element.width()+1));
         } else {
-          selector.css('left',element.position().left);
+          selector.css('left',element.offset().left);
         }
 
         setSelectorGlyphiconDisplayed("block");
@@ -178,12 +219,12 @@ moment.locale('fr');
       }
     }
 
-    function setAgentList(agentTable){
+    function setAgentList(){
       agents.forEach(function(element){
         var string = "";
         var grid = paintGrid();
-        string += "<tr class='agent'><td unselectable='on' onselectstart='return false;' onmousedown='return false;' class='name'>"+element+"</td> \
-        <td class='grid'><table><tbody><tr>"+grid+"</tr></tbody></table></td></tr>";
+        string += "<tr class='agent' data-agent='"+element+"'><td unselectable='on' onselectstart='return false;' onmousedown='return false;' class='name'>"+element+"</td> \
+        <td class='grid'><table><tbody class='row'><tr>"+grid+"</tr></tbody></table></td></tr>";
         agentTable.append(string);
       });
     }
@@ -217,9 +258,9 @@ moment.locale('fr');
       var qwidth = Math.trunc(cwidth/4);
 
       for(var x = 0;x<5;x++){
-        string += "<td width='"+pwidth+"px'><table class='quarter'><tbody><tr>";
+        string += "<td class='quarter' width='"+pwidth+"px'><table><tbody><tr>";
         for(var i = 0;i<10;i++){
-          string += "<td width='"+cwidth+"px'><table class='quarter-child'><tbody><tr>";
+          string += "<td class='quarter-child' width='"+cwidth+"px'><table><tbody><tr>";
           for(var j = 0;j<4;j++){
             string += "<td width='"+qwidth+"px'>";
           }
@@ -231,10 +272,12 @@ moment.locale('fr');
       return string;
     }
 
+    //Sauvegarder l'etat du selecteur de date
     function setSelectorActive(active){
       selectorActive = active;
     }
 
+    //Positionner le selecteur
     function setSelectorPosition(top,left,right){
       selector.css({
         'top':top,
@@ -243,24 +286,21 @@ moment.locale('fr');
       });
     }
 
-    /*function setSelectorWidth(width){
-      selector.css({
-        'width':width
-      });
-    }*/
-
+    //Afficher le plus
     function setSelectorGlyphiconDisplayed(displayed){
       $('.glyphicon',selector).css({
         'display':displayed
       });
     }
 
+    //Afficher le selecteur
     function setSelectorDisplayed(displayed){
       selector.css({
         'display':displayed
       });
     }
 
+    //Récupération de la taille de la scrollbar
     function getScrollBarWidth () {
       var inner = document.createElement('p');
       inner.style.width = "100%";
