@@ -7,12 +7,12 @@ moment.locale('fr');
     //EVENTS
     var events = [{
       agent: "Benoit Rastier",
-      start: "07/08/2017 08:45",
-      end: "07/08/2017 17:00",
+      start: "14/08/2017 08:45",
+      end: "14/08/2017 17:00",
     },{
       agent: "Lionel Tarlet",
-      start: "09/08/2017 10:00",
-      end: "10/08/2017 14:30",
+      start: "16/08/2017 10:00",
+      end: "17/08/2017 14:30",
     }];
 
 
@@ -30,7 +30,8 @@ moment.locale('fr');
 
     //Event
     var direction = undefined;
-    var mouseState = false;
+    var select = false;
+    var resize = false;
 
     $.fn.scheduler = function() {
       self = this;
@@ -61,41 +62,24 @@ moment.locale('fr');
         agentTable = $(".agents",scheduler);
         setAgentList();
 
-        bindEvent(scheduler);
-
         $(self).html(scheduler);
 
         events.forEach(function(element){
           var where = $('tr[data-agent="'+element.agent+'"] .grid .row',agentTable);
 
           var start = moment(element.start,"DD/MM/YYYY HH:mm");
-          var quarters = $('.quarter:nth-child('+start.day()+')',where);
-          var quarterchilds =  $('.quarter-child:nth-child('+(hours.indexOf(start.hours())+1)+')',quarters);
-          var left = $('td:nth-child('+(Math.trunc(start.minutes() / 15)+1)+')',quarterchilds).offset().left - 160;
+          var left = $('td[data-date="'+start.format('DD HH:mm')+'"]',where).offset().left - 160;
 
           var end = moment(element.end,"DD/MM/YYYY HH:mm");
-          var quartere = $('.quarter:nth-child('+end.day()+')',where);
-          var quarterchilde =  $('.quarter-child:nth-child('+(hours.indexOf(end.hours())+1)+')',quartere);
-          var right = $('td:nth-child('+(Math.trunc(end.minutes() / 15)+1)+')',quarterchilde);
+          var right = $('td[data-date="'+end.format('DD HH:mm')+'"]',where);
 
-          var width = (right.offset().left - 160) - left + right.width();
+          var right = ($(window).width() - right.offset().left) - right.width() - 2;
 
-          where.append('<tr class="event" style="left:'+left+'px;width:'+width+'px"><td></td></tr>');
-
-          /*startDay = Math.trunc(($(window).width() - 160) / 5) * startDay;
-
-          var startHours = hours.indexOf(start.hours());
-          startHours = Math.trunc(startDay/10) * startHours;
-
-          var quarter = Math.trunc(start.minutes() / 15);
-          quarter = Math.trunc(startDay/40) * quarter;
-
-          var left = startHours + quarter;
-
-          where.append('<tr class="event" style="left:'+left+'px"><td></td></tr>');*/
-
-          //var end = moment(element.end,"DD/MM/YYYY hh:ss").day();
+          where.append('<div class="event ui-widget ui-widget-content" style="left:'+left+'px;right:'+right+'px"> \
+          <p>'+start.format("DD HH:mm")+' - '+end.format("DD HH:mm")+'</p></div>');
         });
+
+        bindEvent(scheduler);
 
       });
     };
@@ -114,11 +98,14 @@ moment.locale('fr');
       });
 
       //lorsque le clique de la souris est pressé
-      $(".grid",scheduler).mousedown(function(e) {
+      $(".quarter",scheduler).mousedown(function(e) {
           // You can record the starting position with
           /*var self = this;*/
+
+          if(resize == false && select == false){
+
           setSelectorGlyphiconDisplayed("none");
-          mouseState = true;
+          select = true;
 
           var clickedElement = $(e.target);
           //var start_x = clickedElement.position().left;
@@ -148,30 +135,59 @@ moment.locale('fr');
             }
           });
 
+        } else {
+
+          $('.quarter',scheduler).trigger("mouseup",e);
+
+        }
+
       });
 
       //Lorsque la souris est relaché
-      $(".grid",scheduler).mouseup(function(event){
+      $(".quarter",scheduler).mouseup(function(e,evt){
 
-        mouseState = false;
+        var pageX = e.pageX || evt.pageX;
+        var pageY = e.pageY || evt.pageY;
 
         $(".planning").unbind("mousemove");
 
-        element = $(document.elementFromPoint(event.pageX,event.pageY));
-        if(direction == 'right'){
-          selector.css('right',$(window).width() - (element.offset().left+element.width()+1));
-        } else {
-          selector.css('left',element.offset().left);
-        }
+        if(select == true){
+          select = false;
 
-        setSelectorGlyphiconDisplayed("block");
+          element = $(document.elementFromPoint(pageX,pageY));
+          if(direction == 'right'){
+            selector.css('right',$(window).width() - (element.offset().left+element.width()+1));
+          } else {
+            selector.css('left',element.offset().left);
+          }
+
+          setSelectorGlyphiconDisplayed("block");
+        } else if( resize != false){
+          var tr = resize;
+
+          resize = false;
+
+          var left =  parseInt(tr.css('left')) + 160;
+          var right =  $(window).width() - parseInt(tr.css('right'));
+
+          tr.hide();
+          element = $(document.elementFromPoint(pageX,pageY));
+          if(direction == 'right'){
+            if(pageX > left)
+              tr.css('right',$(window).width() - (element.offset().left+element.width()+1));
+          } else {
+            if(pageX < right)
+              tr.css('left',element.offset().left-160);
+          }
+          tr.show();
+        }
 
       });
 
       //Si la souris quitte le planning
       $(".planning",scheduler).mouseleave(function(event){
 
-        if(mouseState){
+        if(select){
 
           $(".planning").unbind("mousemove");
 
@@ -184,10 +200,94 @@ moment.locale('fr');
           }
 
           setSelectorGlyphiconDisplayed("block");
-          mouseState = false;
+          select = false;
 
         }
 
+      });
+
+      //resize is clicked
+      /*$(".resizer",scheduler).mousedown(function(e) {
+          // You can record the starting position with
+          resize = $(this).closest('tr');
+          direction = $(this).hasClass("resizeleft") ? "left" : "right";
+          var clickedElement = $(this).closest('tr');
+          //var start_x = clickedElement.position().left;
+          var elementLeft = clickedElement.offset().left;
+          var elementRight = clickedElement.offset().left + clickedElement.width();
+          //var scroll = $('.planning',scheduler).scrollTop();
+
+          clickedElement.width("auto");
+
+          $(".planning",scheduler).mousemove(function(e) {
+            if(direction == "right"){
+              if(e.pageX >= elementLeft + 5){
+                clickedElement.css({
+                  'right':$(window).width() - e.pageX
+                });
+              }
+            } else {
+              if(e.pageX <= elementRight - 5){
+                clickedElement.css({
+                  'left':e.pageX - 160,
+                  'right':$(window).width() - elementRight
+                });
+              }
+            }
+          });
+
+      });*/
+
+      var resizElement = undefined;
+      var axis = undefined;
+      $(".event").resizable({
+          handles: 'e, w',
+          start: function( event,ui) {
+            resizElement = $(this);
+            axis = resizElement.data('ui-resizable').axis;
+          },
+          resize: function(event,ui){
+            resizElement.hide();
+            var elem = $(document.elementFromPoint(event.pageX,event.pageY));
+
+            var originalDates = $('p',resizElement).html();
+
+            newDate = elem.attr('data-date');
+            if(axis == "e"){
+              //Ajout d'un quart d'heure
+              newDate = originalDates.substr(0,originalDates.indexOf(" - ")+1) + " - " + newDate;
+            } else {
+              newDate = newDate + " - " + originalDates.substr(originalDates.indexOf(" - ")+3);
+            }
+
+            $('p',resizElement).html(newDate);
+            resizElement.show();
+          },
+          stop: function( event) {
+
+          },
+      }).on('resize',function(e){
+        e.stopPropagation();
+      });
+
+      var dragElement = undefined;
+      $(".event").draggable({
+        start: function() {
+          dragElement = $(this);
+          dragElement.css({
+            "left":"auto",
+            "right":"auto",
+            "width":$(this).width()
+          });
+        },
+        stop: function(e) {
+          dragElement.hide();
+          $(document.elementFromPoint(e.pageX,e.pageY)).closest('.row').append(dragElement);
+          dragElement.css({
+            "top":""
+          });
+          dragElement.show();
+        }
       });
 
       //Add calendar event
@@ -196,9 +296,9 @@ moment.locale('fr');
       });
 
       //Refresh planning when window resize
-      window.onresize = function(){
+      $( window ).resize(function() {
         init();
-      }
+      });
 
     };
 
@@ -258,11 +358,14 @@ moment.locale('fr');
       var qwidth = Math.trunc(cwidth/4);
 
       for(var x = 0;x<5;x++){
+        var day = moment().isoWeekday(1).add(x,'days').dates() + " ";
         string += "<td class='quarter' width='"+pwidth+"px'><table><tbody><tr>";
-        for(var i = 0;i<10;i++){
+        for(var i = 8;i<18;i++){
+          var hour = ("00" + i).slice(-2) + ":";
           string += "<td class='quarter-child' width='"+cwidth+"px'><table><tbody><tr>";
           for(var j = 0;j<4;j++){
-            string += "<td width='"+qwidth+"px'>";
+            var date = day + hour + ("00" + j*15).slice(-2);
+            string += "<td data-date='"+date+"' width='"+qwidth+"px'>";
           }
           string += "</td></tbody></table></td>";
         }

@@ -172,9 +172,34 @@ table{
 .grid .event{
   height: 100px;
   position: absolute;
-  width: 8px;
   top: 0px;
   background: black;
+  z-index: 1000;
+}
+
+.grid .event p{
+  color: white;
+}
+
+.grid .event td{
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  right: 0px;
+}
+
+.grid .event .resizer{
+  height: 100px;
+  width: 10px;
+  cursor: col-resize;
+}
+
+.grid .event .resizeleft{
+  float: left;
+}
+
+.grid .event .resizeright{
+  float: right;
 }
 
 .quarter td{
