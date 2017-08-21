@@ -7,17 +7,60 @@ moment.locale('fr');
     //EVENTS
     var events = [{
       agent: "Benoit Rastier",
-      start: "14/08/2017 08:45",
-      end: "14/08/2017 17:00",
-    },{
-      agent: "Lionel Tarlet",
-      start: "16/08/2017 10:00",
-      end: "17/08/2017 14:30",
+      events : [{
+        id: '1',
+        start: "21/08/2017 08:45",
+        end: "21/08/2017 17:00",
+        title: "411BCMI",
+        type: "Hotline",
+        color: "#E74C3C"
+      },{
+        id: '2',
+        start: "21/08/2017 12:30",
+        end: "21/08/2017 16:45",
+        title: "411LOGIS",
+        type: "Atelier",
+        color: "#8E44AD"
+      },{
+        id: '3',
+        start: "21/08/2017 14:30",
+        end: "22/08/2017 15:00",
+        title: "411LOGIS",
+        type: "Dev",
+        color: "#5499C7"
+      },{
+        id: '5',
+        start: "22/08/2017 08:30",
+        end: "22/08/2017 15:00",
+        title: "411LOGIS",
+        type: "Regie",
+        color: "#52BE80"
+      },{
+        id: '6',
+        start: "23/08/2017 08:30",
+        end: "23/08/2017 15:00",
+        title: "411LOGIS",
+        type: "Contrat",
+        color: "#E67E22"
+      }]
     }];
 
+    /*
+    ,{
+      id: '5',
+      agent: "Benoit Rastier",
+      start: "22/08/2017 08:30",
+      end: "22/08/2017 15:00",
+      title: "411LOGIS"
+    },
+    */
+    var slicedArray = undefined;
+
+    var height = undefined;
 
     var shade = "#556b2f";
     var self = undefined;
+    var scheduler = undefined;
     var startDate = undefined;
     var dateRange = undefined;
     var daysRange = undefined;
@@ -40,9 +83,14 @@ moment.locale('fr');
 
     function init(obj){
       $.get("./assets/templates/scheduler.tmpl.html", function(data){
-        var scheduler = $(data);
+
+        height = ($(window).height() - 139) / agents.length;
+
+        scheduler = $(data);
 
         selector = $('.selector',scheduler);
+        selector.height(height);
+        $('.glyphicon',selector).css('line-height',height + "px");
 
         $(".planning",scheduler).css({
           'height':$(window).height()-140,
@@ -64,27 +112,157 @@ moment.locale('fr');
 
         $(self).html(scheduler);
 
-        events.forEach(function(element){
-          var where = $('tr[data-agent="'+element.agent+'"] .grid .row',agentTable);
+        for(var i=0;i<events.length;i++){
+          refreshLine(i);
+        }
+
+        //Affichage du nouveau tableau
+        /*console.log(positionningArray);
+        displayElement(eventsInArray,positionningArray);*/
+
+        tippy('.event');
+
+        //bindEvent(scheduler);
+
+      });
+    };
+
+    function refreshLine(agent){
+
+      //Reorganiser tableau element.
+      //events.sort(sortEvents);
+      events[agent].events.sort(sortEvents);
+
+      var event = events[agent].events;
+      var positionningArray = [[0]];
+      slicedArray = events[agent].events.slice(1);
+      var positionned = false;
+      var newArray = false;
+      var eventsInArray = [0];
+
+      slicedArray.forEach(function(element,idx){
+        positionningArray.forEach(function(dimension){
+
+          var elemStart = moment(element.start,"DD/MM/YYYY HH:mm");
+          var elemEnd = moment(element.end,"DD/MM/YYYY HH:mm");
+
+          var greppedEvent = $.grep(event.slice(idx+1), function( a ) {
+                               return a.agent == element.agent &&
+                                a.id != element.id &&
+                                ((moment(a.start,"DD/MM/YYYY HH:mm").isBefore(elemEnd) &&
+                                moment(a.start,"DD/MM/YYYY HH:mm").isAfter(elemStart)) ||
+                                (elemStart.isBefore(moment(a.end,"DD/MM/YYYY HH:mm")) &&
+                                elemStart.isAfter(moment(a.start,"DD/MM/YYYY HH:mm"))));
+                             });
+
+          if(!newArray && (!positionned || greppedEvent.length == 0)){
+            var lastOfRow = event[dimension[dimension.length - 1]];
+            var endLastRow = moment(lastOfRow.end,"DD/MM/YYYY HH:mm");
+            var startLastRow = moment(lastOfRow.start,"DD/MM/YYYY HH:mm");
+
+            if(moment(element.start,"DD/MM/YYYY HH:mm").isAfter(endLastRow)){
+
+              //Calcule du nombre de superposition existante
+              //Par rapport à l'élément courrant.
+              greppedEvent = $.grep(event, function( a ) {
+                                   return a.agent == element.agent &&
+                                    a.id != element.id &&
+                                    ((moment(a.start,"DD/MM/YYYY HH:mm").isBefore(elemEnd) &&
+                                    moment(a.start,"DD/MM/YYYY HH:mm").isAfter(elemStart)) ||
+                                    (elemStart.isBefore(moment(a.end,"DD/MM/YYYY HH:mm")) &&
+                                    elemStart.isAfter(moment(a.start,"DD/MM/YYYY HH:mm"))));
+                                 });
+
+              if(greppedEvent.length == 0){
+                  console.log(positionningArray);
+                  displayElement(agent,eventsInArray,positionningArray);
+                  eventsInArray = [idx+1];
+                  positionningArray = [[idx+1]];
+                  newArray = true;
+                  positionned = true;
+              } else {
+                  dimension.push(idx+1);
+                  if(!eventsInArray.includes(idx+1)) eventsInArray.push(idx+1);
+                  positionned = true;
+              }
+            }
+          }
+
+        });
+
+        if(!positionned){
+          if(!eventsInArray.includes(idx+1)) eventsInArray.push(idx+1);
+          positionningArray.push([idx+1]);
+        }
+
+        positionned = false;
+        newArray = false;
+
+      });
+
+      console.log(positionningArray);
+      displayElement(agent,eventsInArray,positionningArray);
+
+      bindEvent(scheduler);
+
+    }
+
+    function displayElement(agent,eventsInArray,positionningArray){
+
+      eventsInArray.forEach(function(element,idx){
+
+          var element = events[agent].events[element];
+          var elementAgent = events[agent].agent;
+          idx += positionningArray[0][0];
+
+          var beginningRow = undefined;
+          var numberOfRow = 0;
+
+          for(var i = 0;i<positionningArray.length;i++){
+            if(positionningArray[i].includes(idx)){
+              if(beginningRow == undefined)
+                beginningRow = i;
+
+              numberOfRow += 1;
+            }
+          }
+
+          var elemHeight = (height / positionningArray.length) * numberOfRow;
+          var top = (height / positionningArray.length) * beginningRow;
+
+          var where = $('tr[data-agent="'+elementAgent+'"] .grid .row',agentTable);
 
           var start = moment(element.start,"DD/MM/YYYY HH:mm");
           var left = $('td[data-date="'+start.format('DD HH:mm')+'"]',where).offset().left - 160;
 
           var end = moment(element.end,"DD/MM/YYYY HH:mm");
+          end.add(-15,'minutes');
           var right = $('td[data-date="'+end.format('DD HH:mm')+'"]',where);
 
           var right = ($(window).width() - right.offset().left) - right.width() - 2;
 
-          where.append('<div class="event ui-widget ui-widget-content" style="left:'+left+'px;right:'+right+'px"> \
-          <p>'+start.format("DD HH:mm")+' - '+end.format("DD HH:mm")+'</p></div>');
-        });
+          where.append('<div data-animation="perspective" data-arrow="true" \
+          data-size="big" title="'+element.title+'" data-index="'+idx+'" id='+element.type+' class="event ui-widget ui-widget-content" \
+          style="height:'+elemHeight+'px;top:'+top+'px;left:'+left+'px;right:'+right+'px"> \
+          <p><b>'+start.format("HH:mm")+' - '+end.add(15,'minutes').format("HH:mm")+'</b></p></div>');
 
-        bindEvent(scheduler);
+          $(".event#"+element.type,where).css({ 'background' : LightenDarkenColor(element.color,70)});
+          $(".event#"+element.type+" p",where).css({ 'color' : element.color});
+          $('html > head').append("<style> .event#"+element.type+" div {background : "+element.color+"} </style>");
 
       });
-    };
+
+    }
 
     function bindEvent(scheduler){
+      //unbind first
+      $(".changeDate .btn",scheduler).unbind();
+      $(".quarter",scheduler).unbind();
+      $(".planning",scheduler).unbind();
+      $(".event").unbind();
+      $('.selector',scheduler).unbind();
+      $(window).unbind();
+      //$(".event",scheduler).unbind();
 
       //Change range date
       $(".changeDate .btn",scheduler).bind("click",function(){
@@ -206,38 +384,6 @@ moment.locale('fr');
 
       });
 
-      //resize is clicked
-      /*$(".resizer",scheduler).mousedown(function(e) {
-          // You can record the starting position with
-          resize = $(this).closest('tr');
-          direction = $(this).hasClass("resizeleft") ? "left" : "right";
-          var clickedElement = $(this).closest('tr');
-          //var start_x = clickedElement.position().left;
-          var elementLeft = clickedElement.offset().left;
-          var elementRight = clickedElement.offset().left + clickedElement.width();
-          //var scroll = $('.planning',scheduler).scrollTop();
-
-          clickedElement.width("auto");
-
-          $(".planning",scheduler).mousemove(function(e) {
-            if(direction == "right"){
-              if(e.pageX >= elementLeft + 5){
-                clickedElement.css({
-                  'right':$(window).width() - e.pageX
-                });
-              }
-            } else {
-              if(e.pageX <= elementRight - 5){
-                clickedElement.css({
-                  'left':e.pageX - 160,
-                  'right':$(window).width() - elementRight
-                });
-              }
-            }
-          });
-
-      });*/
-
       var resizElement = undefined;
       var axis = undefined;
       $(".event").resizable({
@@ -252,12 +398,12 @@ moment.locale('fr');
 
             var originalDates = $('p',resizElement).html();
 
-            newDate = elem.attr('data-date');
+            newDate = moment(elem.attr('data-date'),"DD HH:mm");
             if(axis == "e"){
               //Ajout d'un quart d'heure
-              newDate = originalDates.substr(0,originalDates.indexOf(" - ")+1) + " - " + newDate;
+              newDate = originalDates.substr(0,originalDates.indexOf(" - ")+1) + " - " + newDate.add(15,"minutes").format("HH:mm");
             } else {
-              newDate = newDate + " - " + originalDates.substr(originalDates.indexOf(" - ")+3);
+              newDate = newDate.add(15,"minutes").format("HH:mm") + " - " + originalDates.substr(originalDates.indexOf(" - ")+3);
             }
 
             $('p',resizElement).html(newDate);
@@ -274,6 +420,7 @@ moment.locale('fr');
       $(".event").draggable({
         start: function() {
           dragElement = $(this);
+
           dragElement.css({
             "left":"auto",
             "right":"auto",
@@ -281,12 +428,26 @@ moment.locale('fr');
           });
         },
         stop: function(e) {
-          dragElement.hide();
-          $(document.elementFromPoint(e.pageX,e.pageY)).closest('.row').append(dragElement);
-          dragElement.css({
-            "top":""
-          });
-          dragElement.show();
+          var offset = dragElement.offset();
+          var width = dragElement.width();
+          var id = dragElement.attr('data-index');
+          //var top =
+          var doc = $(document.elementFromPoint(e.pageX,e.pageY));
+          var agent = agents.indexOf(doc.closest('.agent').attr('data-agent'));
+          doc.closest('.row').find('.event').remove();
+
+          var i = 0;
+          var start = undefined;
+          var end = undefined;
+          do{
+            if(start == undefined || !start.isValid()) start = moment($(document.elementFromPoint(offset.left+i,e.pageY)).attr('data-date'),'DD HH:mm');
+            if(end == undefined || !end.isValid()) end = moment($(document.elementFromPoint(offset.left+width-i,e.pageY)).attr('data-date'),'DD HH:mm');
+            i += 1;
+          }while(!start.isValid() || !end.isValid());
+          //data-elem
+          changeIndexElementHours(events[agent].events[id],start,end);
+          refreshLine(agent);
+
         }
       });
 
@@ -323,7 +484,7 @@ moment.locale('fr');
       agents.forEach(function(element){
         var string = "";
         var grid = paintGrid();
-        string += "<tr class='agent' data-agent='"+element+"'><td unselectable='on' onselectstart='return false;' onmousedown='return false;' class='name'>"+element+"</td> \
+        string += "<tr class='agent' style='height:"+height+"px' data-agent='"+element+"'><td unselectable='on' onselectstart='return false;' onmousedown='return false;' class='name'>"+element+"</td> \
         <td class='grid'><table><tbody class='row'><tr>"+grid+"</tr></tbody></table></td></tr>";
         agentTable.append(string);
       });
@@ -350,7 +511,6 @@ moment.locale('fr');
     }
 
     function paintGrid(){
-
       var string = "";
 
       var pwidth = Math.trunc(($(window).width() - 160) / 5);
@@ -359,10 +519,10 @@ moment.locale('fr');
 
       for(var x = 0;x<5;x++){
         var day = moment().isoWeekday(1).add(x,'days').dates() + " ";
-        string += "<td class='quarter' width='"+pwidth+"px'><table><tbody><tr>";
+        string += "<td class='quarter' width='"+pwidth+"px'><table style='height:"+height+"px'><tbody><tr>";
         for(var i = 8;i<18;i++){
           var hour = ("00" + i).slice(-2) + ":";
-          string += "<td class='quarter-child' width='"+cwidth+"px'><table><tbody><tr>";
+          string += "<td class='quarter-child' width='"+cwidth+"px'><table style='height:"+height+"px'><tbody><tr>";
           for(var j = 0;j<4;j++){
             var date = day + hour + ("00" + j*15).slice(-2);
             string += "<td data-date='"+date+"' width='"+qwidth+"px'>";
@@ -403,6 +563,18 @@ moment.locale('fr');
       });
     }
 
+    function changeIndexElementHours(element,start,end){
+      element.start = moment(element.start,"DD/MM/YYYY HH:mm").date(start.date()).hour(start.hour()).minute(start.minutes()).format("DD/MM/YYYY HH:mm");
+      element.end = moment(element.end,"DD/MM/YYYY HH:mm").date(end.date()).hour(end.hour()).minute(end.minutes()).format("DD/MM/YYYY HH:mm");
+    }
+
+    function sortEvents(a,b){
+      if(moment(a.start,"DD/MM/YYYY HH:mm").isAfter(moment(b.start,"DD/MM/YYYY HH:mm")))
+        return 1
+      if(moment(a.start,"DD/MM/YYYY HH:mm").isBefore(moment(b.start,"DD/MM/YYYY HH:mm")))
+        return -1
+    }
+
     //Récupération de la taille de la scrollbar
     function getScrollBarWidth () {
       var inner = document.createElement('p');
@@ -429,5 +601,35 @@ moment.locale('fr');
 
       return (w1 - w2);
     };
+
+    function LightenDarkenColor(col, amt) {
+
+      var usePound = false;
+
+      if (col[0] == "#") {
+          col = col.slice(1);
+          usePound = true;
+      }
+
+      var num = parseInt(col,16);
+
+      var r = (num >> 16) + amt;
+
+      if (r > 255) r = 255;
+      else if  (r < 0) r = 0;
+
+      var b = ((num >> 8) & 0x00FF) + amt;
+
+      if (b > 255) b = 255;
+      else if  (b < 0) b = 0;
+
+      var g = (num & 0x0000FF) + amt;
+
+      if (g > 255) g = 255;
+      else if (g < 0) g = 0;
+
+      return (usePound?"#":"") + (g | (b << 8) | (r << 16)).toString(16);
+
+  }
 
 }( jQuery ));

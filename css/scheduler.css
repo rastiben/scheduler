@@ -36,7 +36,6 @@ table{
   position: absolute;
   display: none;
   background: #85C1E9;
-  height: 100px;
   transition: all 0.05s linear;
   transition: background-color 0.1s linear;
   text-align:center;
@@ -46,7 +45,6 @@ table{
 .selector .glyphicon{
   color: #FBFCFC;
   font-size: 20px;
-  line-height: 100px;
   display: none;
 }
 
@@ -82,7 +80,6 @@ table{
 }
 
 .agent{
-  height: 100px;
   border: 1px solid lightgray;
 }
 
@@ -153,24 +150,10 @@ table{
 }
 
 .grid table{
-  height: 100px;
   position: relative;
 }
-
-/*.grid tr.events{
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100px;
-}
-
-.grid tr.events td{
-  position: relative;
-}*/
 
 .grid .event{
-  height: 100px;
   position: absolute;
   top: 0px;
   background: black;
@@ -189,7 +172,6 @@ table{
 }
 
 .grid .event .resizer{
-  height: 100px;
   width: 10px;
   cursor: col-resize;
 }
@@ -208,4 +190,16 @@ table{
 
 .quarter-child td:last-child{
   border: none;
+}
+
+.event p{
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-left: 7px;
+}
+
+.ui-widget.ui-widget-content,
+.ui-widget-content{
+  border: none !important;
 }
