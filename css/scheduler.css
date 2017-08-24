@@ -203,3 +203,11 @@ table{
 .ui-widget-content{
   border: none !important;
 }
+
+.ui-resizable-e{
+  right: 0px !important;
+}
+
+.ui-resizable-w{
+  left: 0px !important;
+}

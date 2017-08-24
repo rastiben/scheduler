@@ -43,17 +43,11 @@ moment.locale('fr');
         type: "Contrat",
         color: "#E67E22"
       }]
+    },{
+      agent: "Charles Cluzel",
+      events : []
     }];
 
-    /*
-    ,{
-      id: '5',
-      agent: "Benoit Rastier",
-      start: "22/08/2017 08:30",
-      end: "22/08/2017 15:00",
-      title: "411LOGIS"
-    },
-    */
     var slicedArray = undefined;
 
     var height = undefined;
@@ -116,15 +110,12 @@ moment.locale('fr');
           refreshLine(i);
         }
 
-        //Affichage du nouveau tableau
-        /*console.log(positionningArray);
-        displayElement(eventsInArray,positionningArray);*/
+        bindEvent(scheduler);
 
         tippy('.event');
 
-        //bindEvent(scheduler);
-
       });
+
     };
 
     function refreshLine(agent){
@@ -138,13 +129,32 @@ moment.locale('fr');
       slicedArray = events[agent].events.slice(1);
       var positionned = false;
       var newArray = false;
+      var noOtherDimension = false;
       var eventsInArray = [0];
 
       slicedArray.forEach(function(element,idx){
-        positionningArray.forEach(function(dimension){
 
-          var elemStart = moment(element.start,"DD/MM/YYYY HH:mm");
-          var elemEnd = moment(element.end,"DD/MM/YYYY HH:mm");
+        var elemStart = moment(element.start,"DD/MM/YYYY HH:mm");
+        var elemEnd = moment(element.end,"DD/MM/YYYY HH:mm");
+
+        var greppedEvent = $.grep(event.slice(0,idx+1), function( a ) {
+                             return a.agent == element.agent &&
+                              a.id != element.id &&
+                              ((moment(a.start,"DD/MM/YYYY HH:mm").isBefore(elemEnd) &&
+                              moment(a.start,"DD/MM/YYYY HH:mm").isAfter(elemStart)) ||
+                              (elemStart.isBefore(moment(a.end,"DD/MM/YYYY HH:mm")) &&
+                              elemStart.isAfter(moment(a.start,"DD/MM/YYYY HH:mm"))));
+                           });
+        if(greppedEvent.length == 0){
+          //console.log(positionningArray);
+          displayElement(agent,eventsInArray,positionningArray);
+          eventsInArray = [idx+1];
+          positionningArray = [[idx+1]];
+          newArray = true;
+          positionned = true;
+        }
+
+        positionningArray.forEach(function(dimension){
 
           var greppedEvent = $.grep(event.slice(idx+1), function( a ) {
                                return a.agent == element.agent &&
@@ -155,36 +165,17 @@ moment.locale('fr');
                                 elemStart.isAfter(moment(a.start,"DD/MM/YYYY HH:mm"))));
                              });
 
-          if(!newArray && (!positionned || greppedEvent.length == 0)){
+          if(!noOtherDimension && !newArray && (!positionned || greppedEvent.length == 0)){
             var lastOfRow = event[dimension[dimension.length - 1]];
             var endLastRow = moment(lastOfRow.end,"DD/MM/YYYY HH:mm");
             var startLastRow = moment(lastOfRow.start,"DD/MM/YYYY HH:mm");
 
             if(moment(element.start,"DD/MM/YYYY HH:mm").isAfter(endLastRow)){
-
-              //Calcule du nombre de superposition existante
-              //Par rapport à l'élément courrant.
-              greppedEvent = $.grep(event, function( a ) {
-                                   return a.agent == element.agent &&
-                                    a.id != element.id &&
-                                    ((moment(a.start,"DD/MM/YYYY HH:mm").isBefore(elemEnd) &&
-                                    moment(a.start,"DD/MM/YYYY HH:mm").isAfter(elemStart)) ||
-                                    (elemStart.isBefore(moment(a.end,"DD/MM/YYYY HH:mm")) &&
-                                    elemStart.isAfter(moment(a.start,"DD/MM/YYYY HH:mm"))));
-                                 });
-
-              if(greppedEvent.length == 0){
-                  console.log(positionningArray);
-                  displayElement(agent,eventsInArray,positionningArray);
-                  eventsInArray = [idx+1];
-                  positionningArray = [[idx+1]];
-                  newArray = true;
-                  positionned = true;
-              } else {
-                  dimension.push(idx+1);
-                  if(!eventsInArray.includes(idx+1)) eventsInArray.push(idx+1);
-                  positionned = true;
-              }
+                dimension.push(idx+1);
+                if(!eventsInArray.includes(idx+1)) eventsInArray.push(idx+1);
+                positionned = true;
+            } else if(positionned){
+                noOtherDimension = true;
             }
           }
 
@@ -197,13 +188,12 @@ moment.locale('fr');
 
         positionned = false;
         newArray = false;
+        noOtherDimension = false;
 
       });
 
-      console.log(positionningArray);
-      displayElement(agent,eventsInArray,positionningArray);
-
-      bindEvent(scheduler);
+      //console.log(positionningArray);
+      if(event.length > 0) displayElement(agent,eventsInArray,positionningArray);
 
     }
 
@@ -242,7 +232,7 @@ moment.locale('fr');
           var right = ($(window).width() - right.offset().left) - right.width() - 2;
 
           where.append('<div data-animation="perspective" data-arrow="true" \
-          data-size="big" title="'+element.title+'" data-index="'+idx+'" id='+element.type+' class="event ui-widget ui-widget-content" \
+          data-size="big" title="'+element.title+'" data-agent="'+agent+'" data-index="'+idx+'" id='+element.type+' class="event ui-widget ui-widget-content" \
           style="height:'+elemHeight+'px;top:'+top+'px;left:'+left+'px;right:'+right+'px"> \
           <p><b>'+start.format("HH:mm")+' - '+end.add(15,'minutes').format("HH:mm")+'</b></p></div>');
 
@@ -256,16 +246,16 @@ moment.locale('fr');
 
     function bindEvent(scheduler){
       //unbind first
-      $(".changeDate .btn",scheduler).unbind();
-      $(".quarter",scheduler).unbind();
-      $(".planning",scheduler).unbind();
+      $(".changeDate .btn",document).unbind();
+      $(".quarter",document).unbind();
+      $(".planning",document).unbind();
       $(".event").unbind();
-      $('.selector',scheduler).unbind();
+      $('.selector',document).unbind();
       $(window).unbind();
       //$(".event",scheduler).unbind();
 
       //Change range date
-      $(".changeDate .btn",scheduler).bind("click",function(){
+      $(".changeDate .btn",document).bind("click",function(){
         if($(this).attr('id') == "left"){
           date = startDate.add(-7,'days');
           setDateRange(date);
@@ -276,7 +266,7 @@ moment.locale('fr');
       });
 
       //lorsque le clique de la souris est pressé
-      $(".quarter",scheduler).mousedown(function(e) {
+      $(".quarter",document).mousedown(function(e) {
           // You can record the starting position with
           /*var self = this;*/
 
@@ -288,14 +278,14 @@ moment.locale('fr');
           var clickedElement = $(e.target);
           //var start_x = clickedElement.position().left;
           var start_x = clickedElement.offset().left;
-          var scroll = $('.planning',scheduler).scrollTop();
+          var scroll = $('.planning',document).scrollTop();
 
           setSelectorDisplayed("block");
           setSelectorPosition(clickedElement.offset().top + scroll - 139
           ,start_x
           ,"auto");
 
-          $(".planning",scheduler).mousemove(function(e) {
+          $(".planning",document).mousemove(function(e) {
             if(e.pageX > 160){
               if(e.pageX > start_x){
                 selector.css({
@@ -315,14 +305,14 @@ moment.locale('fr');
 
         } else {
 
-          $('.quarter',scheduler).trigger("mouseup",e);
+          $('.quarter',document).trigger("mouseup",e);
 
         }
 
       });
 
       //Lorsque la souris est relaché
-      $(".quarter",scheduler).mouseup(function(e,evt){
+      $(".quarter",document).mouseup(function(e,evt){
 
         var pageX = e.pageX || evt.pageX;
         var pageY = e.pageY || evt.pageY;
@@ -363,7 +353,7 @@ moment.locale('fr');
       });
 
       //Si la souris quitte le planning
-      $(".planning",scheduler).mouseleave(function(event){
+      $(".planning",document).mouseleave(function(event){
 
         if(select){
 
@@ -417,10 +407,13 @@ moment.locale('fr');
       });
 
       var dragElement = undefined;
+      var previousAgentRow = undefined;
       $(".event").draggable({
+        containment: [160,140,$(window).width(),$(window).height()],
+        scroll: false,
         start: function() {
           dragElement = $(this);
-
+          previousAgentRow = dragElement.closest('.row');
           dragElement.css({
             "left":"auto",
             "right":"auto",
@@ -431,28 +424,44 @@ moment.locale('fr');
           var offset = dragElement.offset();
           var width = dragElement.width();
           var id = dragElement.attr('data-index');
-          //var top =
+          var previousAgent = dragElement.attr('data-agent');
+          dragElement.hide();
+
           var doc = $(document.elementFromPoint(e.pageX,e.pageY));
           var agent = agents.indexOf(doc.closest('.agent').attr('data-agent'));
           doc.closest('.row').find('.event').remove();
 
-          var i = 0;
-          var start = undefined;
-          var end = undefined;
-          do{
-            if(start == undefined || !start.isValid()) start = moment($(document.elementFromPoint(offset.left+i,e.pageY)).attr('data-date'),'DD HH:mm');
-            if(end == undefined || !end.isValid()) end = moment($(document.elementFromPoint(offset.left+width-i,e.pageY)).attr('data-date'),'DD HH:mm');
-            i += 1;
-          }while(!start.isValid() || !end.isValid());
+          if(previousAgent != agent) id = putEventOnNewAgent(dragElement,id,previousAgent,agent);
+
+          var event = events[agent].events[id];
+          //var duration = moment(event.end,"DD/MM/YYYY HH:mm").diff(moment(event.start,"DD/MM/YYYY HH:mm"));
+          var duration = Math.ceil((width * 50 / ($(document).width() - 160)) * 3600000);
+
+          //calcule du debut et de la fin.
+          var start = getMomentWithLeft(offset.left - 160);
+          var end = addDurationToMoment(start,duration);
           //data-elem
           changeIndexElementHours(events[agent].events[id],start,end);
           refreshLine(agent);
+          if(previousAgent != agent){
+             //$('.agent[data-agent="'++'"]'document).find('.event').remove();
+             previousAgentRow.find('.event').remove();
+             refreshLine(previousAgent);
+          }
 
+          bindEvent(scheduler);
+
+        },
+        drag: function(e,ui){
+          if(ui.offset.left + dragElement.width() > $(window).width())
+            ui.position.left = $(window).width() - dragElement.width() - 162;
+          if(ui.offset.top + dragElement.height() > $(window).height())
+            ui.position.top = $(window).height() - dragElement.height() - 140;
         }
       });
 
       //Add calendar event
-      $('.selector',scheduler).bind('click',function(){
+      $('.selector',document).bind('click',function(){
         alert("toto");
       });
 
@@ -573,6 +582,67 @@ moment.locale('fr');
         return 1
       if(moment(a.start,"DD/MM/YYYY HH:mm").isBefore(moment(b.start,"DD/MM/YYYY HH:mm")))
         return -1
+    }
+
+    function putEventOnNewAgent(element,id,previousAgent,agent){
+      element.attr('data-agent',agent);
+      events[agent].events.push(events[previousAgent].events[id]);
+      events[previousAgent].events.splice(id,1);
+      return events[agent].events.length - 1;
+    }
+
+    //calcule d'une heure
+    function getMomentWithLeft(left,step){
+
+      //Obtention du depart
+      var rowWidth = $(window).width() - 160;
+      var hours = (left * 50) / rowWidth;
+
+      //Obtention du nombre de jour de difference
+      var days = parseInt( hours / 10 );
+      var day = moment().day(days+1);
+
+      //calcule de l'heure et des minutes de depart
+      var hour = Math.floor((hours - (10*days))) + 8;
+      var minutes = (hours - (10*days) - Math.floor((hours - (10*days)))) * 60;
+
+      minutes = (15*Math.floor(minutes/15));
+
+      if(minutes == 60){
+        minutes = 0;
+        hour += 1;
+      }
+
+      return moment(day.date() + " " + hour + ":" + minutes,"DD HH:mm");
+    }
+
+    function addDurationToMoment(date,duration){
+      date = moment(date);
+
+      var hour = parseInt(duration / 3600000);
+      var minutes = (duration / 3600000 - hour) * 60;
+      minutes = (15*Math.ceil(minutes/15));
+
+      for(var i = 0; i<Math.floor(hour);i++){
+        if(moment(date).add(1,"hour").hour() < 18 ||
+          moment(date).add(1,"hour").hour() == 18 && minutes == 0){
+          date.add(1,"hour");
+        } else {
+          date.add(1,"day");
+          date.set("hour",8);
+        }
+      }
+
+      if(moment(date).add(minutes,"minutes").hour() > 18 ){
+        date.add(1,"day");
+        hour = duration - (14 * 3600000);
+        date.set("hour",8);
+        minutes = minutes - date.minutes();
+      }
+
+      date.add(minutes,"minutes");
+
+      return date;
     }
 
     //Récupération de la taille de la scrollbar
