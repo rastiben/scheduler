@@ -5,7 +5,8 @@ moment.locale('fr');
     var hours = [8,9,10,11,12,13,14,15,16,17];
 
     //EVENTS
-    var events = [{
+    var events = [];
+    /*[{
       agent: "Benoit Rastier",
       events : [{
         id: '1',
@@ -46,7 +47,17 @@ moment.locale('fr');
     },{
       agent: "Charles Cluzel",
       events : []
-    }];
+    },{
+      agent: "Matthieu Nowak",
+      events : [{
+        id: '7',
+        start: "23/08/2017 08:30",
+        end: "25/08/2017 15:00",
+        title: "411LOGIS",
+        type: "Contrat",
+        color: "#E67E22"
+      }]
+    }];*/
 
     var slicedArray = undefined;
 
@@ -61,9 +72,11 @@ moment.locale('fr');
     var hoursRange = undefined;
     var agentTable = undefined;
     var agents = ["Benoit Rastier","Charles Cluzel","Matthieu Nowak","Nicolas Maniez","Florent Quétaud","Joel Pelhate","Nicolas Villain","Lionel Tarlet","Jerome Papuchon","Yoann Pachet"];
+    var tabGrid= [];
 
     var selector = undefined;
     var selectorActive = false;
+    var ttotal = 0;
 
     //Event
     var direction = undefined;
@@ -76,7 +89,43 @@ moment.locale('fr');
     };
 
     function init(obj){
+
       $.get("./assets/templates/scheduler.tmpl.html", function(data){
+
+        var horaires = [
+          "21/08/2017 08:30-21/08/2017 12:30",
+          "21/08/2017 14:00-21/08/2017 17:45",
+          "22/08/2017 08:30-22/08/2017 12:30",
+          "22/08/2017 14:00-22/08/2017 17:45",
+          "23/08/2017 08:30-23/08/2017 12:30",
+          "23/08/2017 14:00-23/08/2017 17:45",
+          "24/08/2017 08:30-24/08/2017 12:30",
+          "24/08/2017 14:00-24/08/2017 17:45",
+          "25/08/2017 08:30-25/08/2017 12:30",
+          "25/08/2017 14:00-25/08/2017 17:45",
+        ];
+        //Remplissage des evenements
+        agents.forEach(function(element,idx){
+
+          events.push({
+            agent: element,
+            events: []
+          });
+
+
+          for(var i=0;i<10;i++){
+            events[idx].events.push({
+              id: i,
+              start: horaires[i%10].substr(0,horaires[i%10].indexOf('-')),
+              end: horaires[i%10].substr(horaires[i%10].indexOf('-')+1),
+              title: "LAMBDA",
+              type: "Contrat",
+              color: "#E67E22"
+            });
+          }
+
+        });
+
 
         height = ($(window).height() - 139) / agents.length;
 
@@ -110,6 +159,9 @@ moment.locale('fr');
           refreshLine(i);
         }
 
+        console.log('Total affichage : ' + ttotal);
+
+        bindGlobalEvent();
         bindEvent(scheduler);
 
         tippy('.event');
@@ -117,6 +169,90 @@ moment.locale('fr');
       });
 
     };
+
+    /*function refreshLine(agent){
+
+      //Reorganiser tableau element.
+      //events.sort(sortEvents);
+      events[agent].events.sort(sortEvents);
+
+      var event = events[agent].events;
+      var positionningArray = [[0]];
+      slicedArray = events[agent].events.slice(1);
+      var positionned = false;
+      var newArray = false;
+      var noOtherDimension = false;
+      var lastIDX = 0;
+      var eventsInArray = [0];
+
+      slicedArray.forEach(function(element,idx){
+
+        var elemStart = parseInt(element.start.substr(element.start.indexOf(" ")+1,2));
+        var elemEnd = parseInt(element.end.substr(element.end.indexOf(" ")+1,2));
+
+        //if a.start == elemStart does not work.
+        var greppedEvent = $.grep(event.slice(lastIDX,idx+1), function( a ) {
+          var aStart = parseInt(a.start.substr(a.start.indexOf(" ")+1,2));
+          var aEnd = parseInt(a.end.substr(a.end.indexOf(" ")+1,2));
+          return ((aStart < elemEnd &&
+                  aStart > elemStart) ||
+                 (elemStart < aEnd &&
+                  elemStart > aStart));
+        });
+
+        if(greppedEvent.length == 0){
+          displayElement(agent,eventsInArray,positionningArray);
+          eventsInArray = [idx+1];
+          positionningArray = [[idx+1]];
+          lastIDX = idx;
+          newArray = true;
+          positionned = true;
+        }
+
+        if(!newArray){
+          positionningArray.forEach(function(dimension){
+
+            var greppedEvent = $.grep(event.slice(idx+1), function( a ) {
+                                 return a.agent == element.agent &&
+                                  a.id != element.id &&
+                                  ((moment(a.start,"DD/MM/YYYY HH:mm").isBefore(elemEnd) &&
+                                  moment(a.start,"DD/MM/YYYY HH:mm").isAfter(elemStart)) ||
+                                  (elemStart.isBefore(moment(a.end,"DD/MM/YYYY HH:mm")) &&
+                                  elemStart.isAfter(moment(a.start,"DD/MM/YYYY HH:mm"))));
+                               });
+
+            if(!noOtherDimension && !newArray && (!positionned || greppedEvent.length == 0)){
+              var lastOfRow = event[dimension[dimension.length - 1]];
+              var endLastRow = moment(lastOfRow.end,"DD/MM/YYYY HH:mm");
+              var startLastRow = moment(lastOfRow.start,"DD/MM/YYYY HH:mm");
+
+              if(moment(element.start,"DD/MM/YYYY HH:mm").isAfter(endLastRow)){
+                  dimension.push(idx+1);
+                  if(!eventsInArray.includes(idx+1)) eventsInArray.push(idx+1);
+                  positionned = true;
+              } else if(positionned){
+                  noOtherDimension = true;
+              }
+            }
+
+          });
+        }
+
+        if(!positionned){
+          if(!eventsInArray.includes(idx+1)) eventsInArray.push(idx+1);
+          positionningArray.push([idx+1]);
+        }
+
+        positionned = false;
+        newArray = false;
+        noOtherDimension = false;
+
+      });
+
+      //console.log(positionningArray);
+      if(event.length > 0) displayElement(agent,eventsInArray,positionningArray);
+
+    }*/
 
     function refreshLine(agent){
 
@@ -137,6 +273,7 @@ moment.locale('fr');
         var elemStart = moment(element.start,"DD/MM/YYYY HH:mm");
         var elemEnd = moment(element.end,"DD/MM/YYYY HH:mm");
 
+        //if a.start == elemStart does not work.
         var greppedEvent = $.grep(event.slice(0,idx+1), function( a ) {
                              return a.agent == element.agent &&
                               a.id != element.id &&
@@ -154,32 +291,34 @@ moment.locale('fr');
           positionned = true;
         }
 
-        positionningArray.forEach(function(dimension){
+        if(!newArray){
+          positionningArray.forEach(function(dimension){
 
-          var greppedEvent = $.grep(event.slice(idx+1), function( a ) {
-                               return a.agent == element.agent &&
-                                a.id != element.id &&
-                                ((moment(a.start,"DD/MM/YYYY HH:mm").isBefore(elemEnd) &&
-                                moment(a.start,"DD/MM/YYYY HH:mm").isAfter(elemStart)) ||
-                                (elemStart.isBefore(moment(a.end,"DD/MM/YYYY HH:mm")) &&
-                                elemStart.isAfter(moment(a.start,"DD/MM/YYYY HH:mm"))));
-                             });
+            var greppedEvent = $.grep(event.slice(idx+1), function( a ) {
+                                 return a.agent == element.agent &&
+                                  a.id != element.id &&
+                                  ((moment(a.start,"DD/MM/YYYY HH:mm").isBefore(elemEnd) &&
+                                  moment(a.start,"DD/MM/YYYY HH:mm").isAfter(elemStart)) ||
+                                  (elemStart.isBefore(moment(a.end,"DD/MM/YYYY HH:mm")) &&
+                                  elemStart.isAfter(moment(a.start,"DD/MM/YYYY HH:mm"))));
+                               });
 
-          if(!noOtherDimension && !newArray && (!positionned || greppedEvent.length == 0)){
-            var lastOfRow = event[dimension[dimension.length - 1]];
-            var endLastRow = moment(lastOfRow.end,"DD/MM/YYYY HH:mm");
-            var startLastRow = moment(lastOfRow.start,"DD/MM/YYYY HH:mm");
+            if(!noOtherDimension && !newArray && (!positionned || greppedEvent.length == 0)){
+              var lastOfRow = event[dimension[dimension.length - 1]];
+              var endLastRow = moment(lastOfRow.end,"DD/MM/YYYY HH:mm");
+              var startLastRow = moment(lastOfRow.start,"DD/MM/YYYY HH:mm");
 
-            if(moment(element.start,"DD/MM/YYYY HH:mm").isAfter(endLastRow)){
-                dimension.push(idx+1);
-                if(!eventsInArray.includes(idx+1)) eventsInArray.push(idx+1);
-                positionned = true;
-            } else if(positionned){
-                noOtherDimension = true;
+              if(moment(element.start,"DD/MM/YYYY HH:mm").isAfter(endLastRow)){
+                  dimension.push(idx+1);
+                  if(!eventsInArray.includes(idx+1)) eventsInArray.push(idx+1);
+                  positionned = true;
+              } else if(positionned){
+                  noOtherDimension = true;
+              }
             }
-          }
 
-        });
+          });
+        }
 
         if(!positionned){
           if(!eventsInArray.includes(idx+1)) eventsInArray.push(idx+1);
@@ -198,6 +337,8 @@ moment.locale('fr');
     }
 
     function displayElement(agent,eventsInArray,positionningArray){
+
+      //var t0 = performance.now();
 
       eventsInArray.forEach(function(element,idx){
 
@@ -223,39 +364,36 @@ moment.locale('fr');
           var where = $('tr[data-agent="'+elementAgent+'"] .grid .row',agentTable);
 
           var start = moment(element.start,"DD/MM/YYYY HH:mm");
-          var left = $('td[data-date="'+start.format('DD HH:mm')+'"]',where).offset().left - 160;
+          var left = getLeftWithMoment(start);
 
           var end = moment(element.end,"DD/MM/YYYY HH:mm");
-          end.add(-15,'minutes');
-          var right = $('td[data-date="'+end.format('DD HH:mm')+'"]',where);
-
-          var right = ($(window).width() - right.offset().left) - right.width() - 2;
+          right = ($(window).width()-160) - getLeftWithMoment(end);
 
           where.append('<div data-animation="perspective" data-arrow="true" \
-          data-size="big" title="'+element.title+'" data-agent="'+agent+'" data-index="'+idx+'" id='+element.type+' class="event ui-widget ui-widget-content" \
-          style="height:'+elemHeight+'px;top:'+top+'px;left:'+left+'px;right:'+right+'px"> \
-          <p><b>'+start.format("HH:mm")+' - '+end.add(15,'minutes').format("HH:mm")+'</b></p></div>');
+          data-size="big" title="'+element.title+'" data-agent="'+agent+'" \
+          data-index="'+idx+'" id='+element.type+' class="event ui-widget ui-widget-content" \
+          style="height:'+elemHeight+'px;top:'+top+'px;left:'+left+'px;right:'+right+'px;background:'+LightenDarkenColor(element.color,70)+'"> \
+          <p style="color:'+element.color+'"><b>'+start.format("HH:mm")+' - '+end.format("HH:mm")+'</b></p></div>');
 
-          $(".event#"+element.type,where).css({ 'background' : LightenDarkenColor(element.color,70)});
-          $(".event#"+element.type+" p",where).css({ 'color' : element.color});
-          $('html > head').append("<style> .event#"+element.type+" div {background : "+element.color+"} </style>");
+          /*$(".event#"+element.type,where).css({ 'background' : LightenDarkenColor(element.color,70)});*/
+          /*$(".event#"+element.type+" p",where).css({ 'color' : element.color});*/
+          /*$('html > head').append("<style> .event#"+element.type+" div {background : "+element.color+"} </style>");*/
 
       });
 
+      /*var t1 = performance.now();
+      ttotal += t1 - t0;
+      console.log("Display Element " + (t1 - t0) + " milliseconds.");*/
+
     }
 
-    function bindEvent(scheduler){
-      //unbind first
-      $(".changeDate .btn",document).unbind();
-      $(".quarter",document).unbind();
-      $(".planning",document).unbind();
-      $(".event").unbind();
-      $('.selector',document).unbind();
-      $(window).unbind();
-      //$(".event",scheduler).unbind();
+    function bindGlobalEvent(){
 
       //Change range date
-      $(".changeDate .btn",document).bind("click",function(){
+      $(".changeDate .btn",document)
+      .off("click")
+      .on("click",function(){
+        console.log("clicked");
         if($(this).attr('id') == "left"){
           date = startDate.add(-7,'days');
           setDateRange(date);
@@ -266,7 +404,9 @@ moment.locale('fr');
       });
 
       //lorsque le clique de la souris est pressé
-      $(".quarter",document).mousedown(function(e) {
+      $(".quarter",document)
+      .off("mousedown")
+      .on("mousedown",function(e) {
           // You can record the starting position with
           /*var self = this;*/
 
@@ -312,7 +452,9 @@ moment.locale('fr');
       });
 
       //Lorsque la souris est relaché
-      $(".quarter",document).mouseup(function(e,evt){
+      $(".quarter",document)
+      .off("mouseup")
+      .on("mouseup",function(e,evt){
 
         var pageX = e.pageX || evt.pageX;
         var pageY = e.pageY || evt.pageY;
@@ -353,7 +495,9 @@ moment.locale('fr');
       });
 
       //Si la souris quitte le planning
-      $(".planning",document).mouseleave(function(event){
+      $(".planning",document)
+      .off("mouseleave")
+      .on("mouseleave",function(event){
 
         if(select){
 
@@ -373,6 +517,18 @@ moment.locale('fr');
         }
 
       });
+
+    }
+
+    function bindEvent(scheduler){
+      //unbind first
+      /*$(".changeDate .btn",document).unbind();
+      $(".quarter",document).unbind();
+      $(".planning",document).unbind();
+      $(".event").unbind();
+      $('.selector',document).unbind();
+      $(window).unbind();*/
+      //$(".event",scheduler).unbind();
 
       var resizElement = undefined;
       var axis = undefined;
@@ -408,6 +564,7 @@ moment.locale('fr');
 
       var dragElement = undefined;
       var previousAgentRow = undefined;
+      //.draggable( "disable" )
       $(".event").draggable({
         containment: [160,140,$(window).width(),$(window).height()],
         scroll: false,
@@ -424,6 +581,7 @@ moment.locale('fr');
           var offset = dragElement.offset();
           var width = dragElement.width();
           var id = dragElement.attr('data-index');
+          console.log("STOP "+id);
           var previousAgent = dragElement.attr('data-agent');
           dragElement.hide();
 
@@ -527,14 +685,14 @@ moment.locale('fr');
       var qwidth = Math.trunc(cwidth/4);
 
       for(var x = 0;x<5;x++){
-        var day = moment().isoWeekday(1).add(x,'days').dates() + " ";
+        //var day = moment().isoWeekday(1).add(x,'days').dates() + " ";
         string += "<td class='quarter' width='"+pwidth+"px'><table style='height:"+height+"px'><tbody><tr>";
         for(var i = 8;i<18;i++){
-          var hour = ("00" + i).slice(-2) + ":";
+          //var hour = ("00" + i).slice(-2) + ":";
           string += "<td class='quarter-child' width='"+cwidth+"px'><table style='height:"+height+"px'><tbody><tr>";
           for(var j = 0;j<4;j++){
-            var date = day + hour + ("00" + j*15).slice(-2);
-            string += "<td data-date='"+date+"' width='"+qwidth+"px'>";
+            //var date = day + hour + ("00" + j*15).slice(-2);data-date='"+date+"'
+            string += "<td width='"+qwidth+"px'>";
           }
           string += "</td></tbody></table></td>";
         }
@@ -614,6 +772,31 @@ moment.locale('fr');
       }
 
       return moment(day.date() + " " + hour + ":" + minutes,"DD HH:mm");
+    }
+
+    function getLeftWithMoment(date){
+
+      var rowWidth = $(window).width() - 160;
+      var oneDay = rowWidth / 5;
+      var oneHour = oneDay / 10;
+      var oneQuarter = oneHour / 4;
+
+      var left = 0;
+
+      for(var i = 0;i<(date.isoWeekday() - 1);i++){
+        left += oneDay;
+      }
+
+      for(var i = 0;i<(date.hour() - 8);i++){
+        left += oneHour;
+      }
+
+      for(var i = 0;i<(date.minutes() / 15);i++){
+        left += oneQuarter;
+      }
+
+
+      return left;
     }
 
     function addDurationToMoment(date,duration){
