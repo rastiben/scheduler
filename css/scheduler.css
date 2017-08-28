@@ -11,6 +11,8 @@ html, body{
 
 table{
   border-collapse: collapse;
+  /*width: 100%;*/
+  border: none;
 }
 
 .infoBar{
@@ -29,7 +31,6 @@ table{
   top: 139px;
   bottom: 0;
   left: 0;
-  overflow-y: scroll;
 }
 
 .selector{
@@ -102,7 +103,7 @@ table{
 }
 
 .dateHoraires table{
-  width: 100%;
+  /*width: 100%;*/
 }
 
 .days{
@@ -111,11 +112,10 @@ table{
 }
 
 .days td{
-  border-right: 1px solid lightgray;
+  border-right: 1px solid black;
   vertical-align: baseline;
   padding-top: 9px;
   font-size: 15px;
-  /*width: 20%;*/
 }
 
 .strech{
@@ -135,19 +135,26 @@ table{
   height: 39px;
 }
 
+.hours td{
+  border-right: 1px solid black;
+}
+
 .hours table td{
-  /*width: 10%;*/
-  border-right: 1px solid lightgray;
+  border-right: 1px solid black;
+}
+
+.hours table td:last-child{
+  border: none;
 }
 
 /*.hours table td:last-child{
   border-right: 0px;
 }*/
 
-.grid,
+/*.grid,
 .grid table{
   width: 100%;
-}
+}*/
 
 .grid table{
   position: relative;
@@ -158,6 +165,7 @@ table{
   top: 0px;
   background: black;
   z-index: 1000;
+  border-radius: 5px;
 }
 
 .grid .event p{
@@ -184,13 +192,46 @@ table{
   float: right;
 }
 
-.quarter td{
+.quarter{
+  border-right: 1px solid black;
+}
+
+.quarter-child{
+  border-right: 1px solid black;
+}
+
+.quarter .quarter-child:last-child{
+  border: none;
+}
+
+.quarter-child td:not(:last-child){
   border-right: 1px solid lightgray;
+}
+
+.quarter-child td:nth-child(2){
+  border-right: 1px solid black;
+}
+
+/*.quarter-child td:nth-child(2){
+  border-right: 0.5px solid black;
+}
+
+.quarter-child td:last-child{
+  border-right: 1px solid black;
+  border-left: 1px solid black;
+}
+
+.quarter-child td:first-child{
+  border-left: 1px solid black;
+}
+
+.quarter-child:first-child td:first-child{
+  border-left: none;
 }
 
 .quarter-child td:last-child{
   border: none;
-}
+}*/
 
 .event p{
   white-space: nowrap;
@@ -204,10 +245,43 @@ table{
   border: none !important;
 }
 
+.ui-resizable-handle{
+  height: 10px !important;
+  width: 10px !important;
+  border-radius: 50%;
+  position: absolute !important;
+  top: 50% !important;
+  margin-top: -5px;
+  border: 1px solid white;
+}
+
 .ui-resizable-e{
   right: 0px !important;
+  margin-right: -6px;
 }
 
 .ui-resizable-w{
   left: 0px !important;
+  margin-left: -6px;
+}
+
+.loaders{
+  display: none;
+  position: absolute;
+  left: 0px;
+  right: 0px;
+  bottom: 0px;
+  top: 0px;
+  background: rgba(255,255,255,0.7);
+  z-index: 99999999999;
+}
+
+.loaders img{
+  margin: 0 auto;
+  position: absolute;
+  left: 50%;
+  margin-left: -50px;
+  top: 50%;
+  margin-top: -50px;
+  color: red;
 }

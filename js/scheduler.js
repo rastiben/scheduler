@@ -5,65 +5,11 @@ moment.locale('fr');
     var hours = [8,9,10,11,12,13,14,15,16,17];
 
     //EVENTS
-    var events = [];
-    /*[{
-      agent: "Benoit Rastier",
-      events : [{
-        id: '1',
-        start: "21/08/2017 08:45",
-        end: "21/08/2017 17:00",
-        title: "411BCMI",
-        type: "Hotline",
-        color: "#E74C3C"
-      },{
-        id: '2',
-        start: "21/08/2017 12:30",
-        end: "21/08/2017 16:45",
-        title: "411LOGIS",
-        type: "Atelier",
-        color: "#8E44AD"
-      },{
-        id: '3',
-        start: "21/08/2017 14:30",
-        end: "22/08/2017 15:00",
-        title: "411LOGIS",
-        type: "Dev",
-        color: "#5499C7"
-      },{
-        id: '5',
-        start: "22/08/2017 08:30",
-        end: "22/08/2017 15:00",
-        title: "411LOGIS",
-        type: "Regie",
-        color: "#52BE80"
-      },{
-        id: '6',
-        start: "23/08/2017 08:30",
-        end: "23/08/2017 15:00",
-        title: "411LOGIS",
-        type: "Contrat",
-        color: "#E67E22"
-      }]
-    },{
-      agent: "Charles Cluzel",
-      events : []
-    },{
-      agent: "Matthieu Nowak",
-      events : [{
-        id: '7',
-        start: "23/08/2017 08:30",
-        end: "25/08/2017 15:00",
-        title: "411LOGIS",
-        type: "Contrat",
-        color: "#E67E22"
-      }]
-    }];*/
+    var agentsEvents = [];
 
     var slicedArray = undefined;
 
     var height = undefined;
-
-    var shade = "#556b2f";
     var self = undefined;
     var scheduler = undefined;
     var startDate = undefined;
@@ -71,8 +17,27 @@ moment.locale('fr');
     var daysRange = undefined;
     var hoursRange = undefined;
     var agentTable = undefined;
+    var loader = undefined;
     var agents = ["Benoit Rastier","Charles Cluzel","Matthieu Nowak","Nicolas Maniez","Florent Quétaud","Joel Pelhate","Nicolas Villain","Lionel Tarlet","Jerome Papuchon","Yoann Pachet"];
-    var tabGrid= [];
+    var colorArray = [{
+      id:1,
+      color:'#E67E22'
+    },{
+      id:2,
+      color:'#E74C3C'
+    },{
+      id:3,
+      color:'#BB8FCE'
+    },{
+      id:4,
+      color:'#5DADE2'
+    },{
+      id:5,
+      color:'#58D68D'
+    },{
+      id:6,
+      color:'#F1C40F'
+    }];
 
     var selector = undefined;
     var selectorActive = false;
@@ -83,51 +48,73 @@ moment.locale('fr');
     var select = false;
     var resize = false;
 
+    //calcule longeur des horaires
+    var rowWidth = undefined;
+    var oneDay = undefined;
+    var oneHour = undefined;
+    var oneQuarter = undefined;
+
+
     $.fn.scheduler = function() {
       self = this;
+
+      //Récupération du loader
+      loader = $(".loaders");
+
       init(this);
+
+
+      //Refresh planning when window resize
+      $( window ).resize(function() {
+        init();
+      });
     };
 
     function init(obj){
 
       $.get("./assets/templates/scheduler.tmpl.html", function(data){
 
+        rowWidth = $(window).width() - 160;
+        oneDay = rowWidth / 5;
+        oneHour = oneDay / 10;
+        oneQuarter = oneHour / 4;
+
+        agentsEvents = [];
+
         var horaires = [
-          "21/08/2017 08:30-21/08/2017 12:30",
-          "21/08/2017 14:00-21/08/2017 17:45",
-          "22/08/2017 08:30-22/08/2017 12:30",
-          "22/08/2017 14:00-22/08/2017 17:45",
-          "23/08/2017 08:30-23/08/2017 12:30",
-          "23/08/2017 14:00-23/08/2017 17:45",
-          "24/08/2017 08:30-24/08/2017 12:30",
-          "24/08/2017 14:00-24/08/2017 17:45",
-          "25/08/2017 08:30-25/08/2017 12:30",
-          "25/08/2017 14:00-25/08/2017 17:45",
+          "28/08/2017 08:30-28/08/2017 12:30",
+          "28/08/2017 14:00-28/08/2017 17:45",
+          "29/08/2017 08:30-29/08/2017 12:30",
+          "29/08/2017 14:00-29/08/2017 17:45",
+          "30/08/2017 08:30-30/08/2017 12:30",
+          "30/08/2017 14:00-30/08/2017 17:45",
+          "31/08/2017 08:30-31/08/2017 12:30",
+          "31/08/2017 14:00-31/08/2017 17:45",
+          "01/09/2017 08:30-01/09/2017 12:30",
+          "01/09/2017 14:00-01/09/2017 17:45",
         ];
         //Remplissage des evenements
         agents.forEach(function(element,idx){
 
-          events.push({
-            agent: element,
-            events: []
-          });
+          agentsEvents.push(new Agent());
 
 
           for(var i=0;i<10;i++){
-            events[idx].events.push({
-              id: i,
-              start: horaires[i%10].substr(0,horaires[i%10].indexOf('-')),
-              end: horaires[i%10].substr(horaires[i%10].indexOf('-')+1),
-              title: "LAMBDA",
-              type: "Contrat",
-              color: "#E67E22"
+            color = colorArray[Math.floor(Math.random()*colorArray.length)];
+            agentsEvents[idx].addEvent({
+              id:i,
+              start:horaires[i%10].substr(0,horaires[i%10].indexOf('-')),
+              end:horaires[i%10].substr(horaires[i%10].indexOf('-')+1),
+              title:"LAMBDA",
+              type: color.id,
+              color: color.color
             });
           }
 
         });
 
 
-        height = ($(window).height() - 139) / agents.length;
+        height = ($(window).height() - 144) / agents.length;
 
         scheduler = $(data);
 
@@ -135,10 +122,7 @@ moment.locale('fr');
         selector.height(height);
         $('.glyphicon',selector).css('line-height',height + "px");
 
-        $(".planning",scheduler).css({
-          'height':$(window).height()-140,
-          'right': -getScrollBarWidth()
-        });
+        $(".planning",scheduler).css({'height':$(window).height()-141});
 
         //Set Hour
         dateRange = $(".dateRange",scheduler);
@@ -155,11 +139,16 @@ moment.locale('fr');
 
         $(self).html(scheduler);
 
-        for(var i=0;i<events.length;i++){
+        //A ne pas faire lors d'un init
+        colorArray.forEach(function(element,idx){
+          $('html > head').append("<style> .event[data-type='"+element.id+"'] div {background : "+element.color+"} </style>");
+        });
+
+        for(var i=0;i<agentsEvents.length;i++){
           refreshLine(i);
         }
 
-        console.log('Total affichage : ' + ttotal);
+        //console.log('Total affichage : ' + ttotal);
 
         bindGlobalEvent();
         bindEvent(scheduler);
@@ -170,99 +159,13 @@ moment.locale('fr');
 
     };
 
-    /*function refreshLine(agent){
-
-      //Reorganiser tableau element.
-      //events.sort(sortEvents);
-      events[agent].events.sort(sortEvents);
-
-      var event = events[agent].events;
-      var positionningArray = [[0]];
-      slicedArray = events[agent].events.slice(1);
-      var positionned = false;
-      var newArray = false;
-      var noOtherDimension = false;
-      var lastIDX = 0;
-      var eventsInArray = [0];
-
-      slicedArray.forEach(function(element,idx){
-
-        var elemStart = parseInt(element.start.substr(element.start.indexOf(" ")+1,2));
-        var elemEnd = parseInt(element.end.substr(element.end.indexOf(" ")+1,2));
-
-        //if a.start == elemStart does not work.
-        var greppedEvent = $.grep(event.slice(lastIDX,idx+1), function( a ) {
-          var aStart = parseInt(a.start.substr(a.start.indexOf(" ")+1,2));
-          var aEnd = parseInt(a.end.substr(a.end.indexOf(" ")+1,2));
-          return ((aStart < elemEnd &&
-                  aStart > elemStart) ||
-                 (elemStart < aEnd &&
-                  elemStart > aStart));
-        });
-
-        if(greppedEvent.length == 0){
-          displayElement(agent,eventsInArray,positionningArray);
-          eventsInArray = [idx+1];
-          positionningArray = [[idx+1]];
-          lastIDX = idx;
-          newArray = true;
-          positionned = true;
-        }
-
-        if(!newArray){
-          positionningArray.forEach(function(dimension){
-
-            var greppedEvent = $.grep(event.slice(idx+1), function( a ) {
-                                 return a.agent == element.agent &&
-                                  a.id != element.id &&
-                                  ((moment(a.start,"DD/MM/YYYY HH:mm").isBefore(elemEnd) &&
-                                  moment(a.start,"DD/MM/YYYY HH:mm").isAfter(elemStart)) ||
-                                  (elemStart.isBefore(moment(a.end,"DD/MM/YYYY HH:mm")) &&
-                                  elemStart.isAfter(moment(a.start,"DD/MM/YYYY HH:mm"))));
-                               });
-
-            if(!noOtherDimension && !newArray && (!positionned || greppedEvent.length == 0)){
-              var lastOfRow = event[dimension[dimension.length - 1]];
-              var endLastRow = moment(lastOfRow.end,"DD/MM/YYYY HH:mm");
-              var startLastRow = moment(lastOfRow.start,"DD/MM/YYYY HH:mm");
-
-              if(moment(element.start,"DD/MM/YYYY HH:mm").isAfter(endLastRow)){
-                  dimension.push(idx+1);
-                  if(!eventsInArray.includes(idx+1)) eventsInArray.push(idx+1);
-                  positionned = true;
-              } else if(positionned){
-                  noOtherDimension = true;
-              }
-            }
-
-          });
-        }
-
-        if(!positionned){
-          if(!eventsInArray.includes(idx+1)) eventsInArray.push(idx+1);
-          positionningArray.push([idx+1]);
-        }
-
-        positionned = false;
-        newArray = false;
-        noOtherDimension = false;
-
-      });
-
-      //console.log(positionningArray);
-      if(event.length > 0) displayElement(agent,eventsInArray,positionningArray);
-
-    }*/
-
     function refreshLine(agent){
 
       //Reorganiser tableau element.
-      //events.sort(sortEvents);
-      events[agent].events.sort(sortEvents);
 
-      var event = events[agent].events;
+      var event = agentsEvents[agent].events;
       var positionningArray = [[0]];
-      slicedArray = events[agent].events.slice(1);
+      slicedArray = agentsEvents[agent].events.slice(1);
       var positionned = false;
       var newArray = false;
       var noOtherDimension = false;
@@ -270,21 +173,16 @@ moment.locale('fr');
 
       slicedArray.forEach(function(element,idx){
 
-        var elemStart = moment(element.start,"DD/MM/YYYY HH:mm");
-        var elemEnd = moment(element.end,"DD/MM/YYYY HH:mm");
-
         //if a.start == elemStart does not work.
         var greppedEvent = $.grep(event.slice(0,idx+1), function( a ) {
-                             return a.agent == element.agent &&
-                              a.id != element.id &&
-                              ((moment(a.start,"DD/MM/YYYY HH:mm").isBefore(elemEnd) &&
-                              moment(a.start,"DD/MM/YYYY HH:mm").isAfter(elemStart)) ||
-                              (elemStart.isBefore(moment(a.end,"DD/MM/YYYY HH:mm")) &&
-                              elemStart.isAfter(moment(a.start,"DD/MM/YYYY HH:mm"))));
+                             return (a.start.isBefore(element.end) &&
+                              a.start.isSameOrAfter(element.start)) ||
+                              (element.start.isBefore(a.end) &&
+                              element.start.isAfter(a.start));
                            });
         if(greppedEvent.length == 0){
           //console.log(positionningArray);
-          displayElement(agent,eventsInArray,positionningArray);
+          displayElements(agent,eventsInArray,positionningArray);
           eventsInArray = [idx+1];
           positionningArray = [[idx+1]];
           newArray = true;
@@ -295,20 +193,16 @@ moment.locale('fr');
           positionningArray.forEach(function(dimension){
 
             var greppedEvent = $.grep(event.slice(idx+1), function( a ) {
-                                 return a.agent == element.agent &&
-                                  a.id != element.id &&
-                                  ((moment(a.start,"DD/MM/YYYY HH:mm").isBefore(elemEnd) &&
-                                  moment(a.start,"DD/MM/YYYY HH:mm").isAfter(elemStart)) ||
-                                  (elemStart.isBefore(moment(a.end,"DD/MM/YYYY HH:mm")) &&
-                                  elemStart.isAfter(moment(a.start,"DD/MM/YYYY HH:mm"))));
+                                 return (a.start.isBefore(element.end) &&
+                                  a.start.isAfter(element.start)) ||
+                                  (element.start.isBefore(a.end) &&
+                                  element.start.isAfter(a.start));
                                });
 
             if(!noOtherDimension && !newArray && (!positionned || greppedEvent.length == 0)){
               var lastOfRow = event[dimension[dimension.length - 1]];
-              var endLastRow = moment(lastOfRow.end,"DD/MM/YYYY HH:mm");
-              var startLastRow = moment(lastOfRow.start,"DD/MM/YYYY HH:mm");
 
-              if(moment(element.start,"DD/MM/YYYY HH:mm").isAfter(endLastRow)){
+              if(moment(element.start,"DD/MM/YYYY HH:mm").isAfter(lastOfRow.end)){
                   dimension.push(idx+1);
                   if(!eventsInArray.includes(idx+1)) eventsInArray.push(idx+1);
                   positionned = true;
@@ -332,58 +226,52 @@ moment.locale('fr');
       });
 
       //console.log(positionningArray);
-      if(event.length > 0) displayElement(agent,eventsInArray,positionningArray);
+      if(event.length > 0) displayElements(agent,eventsInArray,positionningArray);
 
     }
 
-    function displayElement(agent,eventsInArray,positionningArray){
+    function displayElements(agent,eventsInArray,positionningArray){
 
       //var t0 = performance.now();
+      var where = getAgentRow(agent);
 
       eventsInArray.forEach(function(element,idx){
 
-          var element = events[agent].events[element];
-          var elementAgent = events[agent].agent;
-          idx += positionningArray[0][0];
+          var element = agentsEvents[agent].events[element];
 
-          var beginningRow = undefined;
-          var numberOfRow = 0;
+          displayElement(idx+positionningArray[0][0],
+                        agent,
+                        element,
+                        positionningArray,
+                        where);
 
-          for(var i = 0;i<positionningArray.length;i++){
-            if(positionningArray[i].includes(idx)){
-              if(beginningRow == undefined)
-                beginningRow = i;
-
-              numberOfRow += 1;
-            }
-          }
-
-          var elemHeight = (height / positionningArray.length) * numberOfRow;
-          var top = (height / positionningArray.length) * beginningRow;
-
-          var where = $('tr[data-agent="'+elementAgent+'"] .grid .row',agentTable);
-
-          var start = moment(element.start,"DD/MM/YYYY HH:mm");
-          var left = getLeftWithMoment(start);
-
-          var end = moment(element.end,"DD/MM/YYYY HH:mm");
-          right = ($(window).width()-160) - getLeftWithMoment(end);
-
-          where.append('<div data-animation="perspective" data-arrow="true" \
-          data-size="big" title="'+element.title+'" data-agent="'+agent+'" \
-          data-index="'+idx+'" id='+element.type+' class="event ui-widget ui-widget-content" \
-          style="height:'+elemHeight+'px;top:'+top+'px;left:'+left+'px;right:'+right+'px;background:'+LightenDarkenColor(element.color,70)+'"> \
-          <p style="color:'+element.color+'"><b>'+start.format("HH:mm")+' - '+end.format("HH:mm")+'</b></p></div>');
-
-          /*$(".event#"+element.type,where).css({ 'background' : LightenDarkenColor(element.color,70)});*/
-          /*$(".event#"+element.type+" p",where).css({ 'color' : element.color});*/
-          /*$('html > head').append("<style> .event#"+element.type+" div {background : "+element.color+"} </style>");*/
+          /**/
 
       });
 
       /*var t1 = performance.now();
       ttotal += t1 - t0;
       console.log("Display Element " + (t1 - t0) + " milliseconds.");*/
+
+    }
+
+    function displayElement(idx,agent,element,positionningArray,where){
+
+      //Récupération de la position vertical
+      var topHeight = getTopHeight(idx,positionningArray);
+
+      //Récupération de la position horizontal
+      var start = moment(element.start,"DD/MM/YYYY HH:mm");
+      var left = getLeftWithMoment(start);
+
+      var end = moment(element.end,"DD/MM/YYYY HH:mm");
+      right = rowWidth - getLeftWithMoment(end);
+
+      where.append('<div data-animation="perspective" data-arrow="true" \
+      data-size="big" title="'+element.title+'" data-agent="'+agent+'" \
+      data-index="'+idx+'" data-type='+element.type+' class="event ui-widget ui-widget-content" \
+      style="height:'+topHeight.height+'px;top:'+topHeight.top+'px;left:'+left+'px;right:'+right+'px;background:'+LightenDarkenColor(element.color,70)+';border: 2px '+element.color+' solid !important;"> \
+      <p style="color:'+element.color+'"><b>'+start.format("HH:mm")+' - '+end.format("HH:mm")+'</b></p></div>');
 
     }
 
@@ -518,6 +406,13 @@ moment.locale('fr');
 
       });
 
+      //Add calendar event
+      $('.selector',document)
+      .off('click')
+      .on('click',function(){
+        alert("toto");
+      });
+
     }
 
     function bindEvent(scheduler){
@@ -572,34 +467,42 @@ moment.locale('fr');
           dragElement = $(this);
           previousAgentRow = dragElement.closest('.row');
           dragElement.css({
-            "left":"auto",
-            "right":"auto",
-            "width":$(this).width()
+            "left": "auto",
+            "right": "auto",
+            "width": rowWidth - parseInt(dragElement.css('right')) - parseInt(dragElement.css('left'))
           });
         },
         stop: function(e) {
+
+          //Récupération des informations
+          var id = dragElement.attr('data-index');
+          var previousAgent = dragElement.attr('data-agent');
           var offset = dragElement.offset();
           var width = dragElement.width();
-          var id = dragElement.attr('data-index');
-          console.log("STOP "+id);
-          var previousAgent = dragElement.attr('data-agent');
-          dragElement.hide();
 
+          //Récupération de la position
+          dragElement.closest(".row").find('.event').hide();
           var doc = $(document.elementFromPoint(e.pageX,e.pageY));
           var agent = agents.indexOf(doc.closest('.agent').attr('data-agent'));
           doc.closest('.row').find('.event').remove();
 
-          if(previousAgent != agent) id = putEventOnNewAgent(dragElement,id,previousAgent,agent);
+          toggleLoad();
 
-          var event = events[agent].events[id];
-          //var duration = moment(event.end,"DD/MM/YYYY HH:mm").diff(moment(event.start,"DD/MM/YYYY HH:mm"));
-          var duration = Math.ceil((width * 50 / ($(document).width() - 160)) * 3600000);
+          //Récupération de l'événement
+          var event = agentsEvents[agent].events[id];
 
-          //calcule du debut et de la fin.
+          //Lors d'un changement d'agent
+          if(previousAgent != agent) event = putEventOnNewAgent(id,previousAgent,agent);
+
+          //Mise a jour des horaires
           var start = getMomentWithLeft(offset.left - 160);
-          var end = addDurationToMoment(start,duration);
-          //data-elem
-          changeIndexElementHours(events[agent].events[id],start,end);
+          var end = addDurationToMoment(start,width);
+          event.changeHoraires(
+            start,
+            end
+          );
+
+          //Rafraichissement des différents
           refreshLine(agent);
           if(previousAgent != agent){
              //$('.agent[data-agent="'++'"]'document).find('.event').remove();
@@ -609,6 +512,8 @@ moment.locale('fr');
 
           bindEvent(scheduler);
 
+          toggleLoad();
+
         },
         drag: function(e,ui){
           if(ui.offset.left + dragElement.width() > $(window).width())
@@ -616,16 +521,6 @@ moment.locale('fr');
           if(ui.offset.top + dragElement.height() > $(window).height())
             ui.position.top = $(window).height() - dragElement.height() - 140;
         }
-      });
-
-      //Add calendar event
-      $('.selector',document).bind('click',function(){
-        alert("toto");
-      });
-
-      //Refresh planning when window resize
-      $( window ).resize(function() {
-        init();
       });
 
     };
@@ -640,7 +535,7 @@ moment.locale('fr');
     function setDays(){
       daysRange.empty();
 
-      var width = Math.trunc(($(window).width() - 160) / 5);
+      var width = Math.trunc(rowWidth / 5);
 
       for(var i = 0;i<5;i++){
         daysRange.append("<td width='"+width+"px'>"+moment(startDate).add(i,"days").date()+"</td>")
@@ -648,9 +543,9 @@ moment.locale('fr');
     }
 
     function setAgentList(){
+      var grid = paintGrid();
       agents.forEach(function(element){
         var string = "";
-        var grid = paintGrid();
         string += "<tr class='agent' style='height:"+height+"px' data-agent='"+element+"'><td unselectable='on' onselectstart='return false;' onmousedown='return false;' class='name'>"+element+"</td> \
         <td class='grid'><table><tbody class='row'><tr>"+grid+"</tr></tbody></table></td></tr>";
         agentTable.append(string);
@@ -661,7 +556,7 @@ moment.locale('fr');
       var i = moment('08','hh');
       var string = "";
 
-      var pwidth = Math.trunc(($(window).width() - 160) / 5);
+      var pwidth = Math.trunc(rowWidth / 5);
       var cwidth = $(window).width() > 1550 ? Math.trunc(pwidth/10) : Math.trunc(pwidth/5);
       var toadd = $(window).width() > 1550 ? 1 : 2;
 
@@ -680,7 +575,7 @@ moment.locale('fr');
     function paintGrid(){
       var string = "";
 
-      var pwidth = Math.trunc(($(window).width() - 160) / 5);
+      var pwidth = Math.trunc(rowWidth / 5);
       var cwidth = Math.trunc(pwidth/10);
       var qwidth = Math.trunc(cwidth/4);
 
@@ -690,7 +585,7 @@ moment.locale('fr');
         for(var i = 8;i<18;i++){
           //var hour = ("00" + i).slice(-2) + ":";
           string += "<td class='quarter-child' width='"+cwidth+"px'><table style='height:"+height+"px'><tbody><tr>";
-          for(var j = 0;j<4;j++){
+          for(var j = 1;j<5;j++){
             //var date = day + hour + ("00" + j*15).slice(-2);data-date='"+date+"'
             string += "<td width='"+qwidth+"px'>";
           }
@@ -730,30 +625,16 @@ moment.locale('fr');
       });
     }
 
-    function changeIndexElementHours(element,start,end){
-      element.start = moment(element.start,"DD/MM/YYYY HH:mm").date(start.date()).hour(start.hour()).minute(start.minutes()).format("DD/MM/YYYY HH:mm");
-      element.end = moment(element.end,"DD/MM/YYYY HH:mm").date(end.date()).hour(end.hour()).minute(end.minutes()).format("DD/MM/YYYY HH:mm");
-    }
-
-    function sortEvents(a,b){
-      if(moment(a.start,"DD/MM/YYYY HH:mm").isAfter(moment(b.start,"DD/MM/YYYY HH:mm")))
-        return 1
-      if(moment(a.start,"DD/MM/YYYY HH:mm").isBefore(moment(b.start,"DD/MM/YYYY HH:mm")))
-        return -1
-    }
-
-    function putEventOnNewAgent(element,id,previousAgent,agent){
-      element.attr('data-agent',agent);
-      events[agent].events.push(events[previousAgent].events[id]);
-      events[previousAgent].events.splice(id,1);
-      return events[agent].events.length - 1;
+    function putEventOnNewAgent(id,previousAgent,agent){
+      agentsEvents[agent].addEvent(agentsEvents[previousAgent].events[id]);
+      agentsEvents[previousAgent].removeEvent(id);
+      return agentsEvents[agent].events[agentsEvents[agent].events.length - 1];
     }
 
     //calcule d'une heure
     function getMomentWithLeft(left,step){
 
       //Obtention du depart
-      var rowWidth = $(window).width() - 160;
       var hours = (left * 50) / rowWidth;
 
       //Obtention du nombre de jour de difference
@@ -776,30 +657,14 @@ moment.locale('fr');
 
     function getLeftWithMoment(date){
 
-      var rowWidth = $(window).width() - 160;
-      var oneDay = rowWidth / 5;
-      var oneHour = oneDay / 10;
-      var oneQuarter = oneHour / 4;
+      return ((date.isoWeekday() - 1) * oneDay) + ((date.hour() - 8) * oneHour) + ((date.minutes() / 15)*oneQuarter);
 
-      var left = 0;
-
-      for(var i = 0;i<(date.isoWeekday() - 1);i++){
-        left += oneDay;
-      }
-
-      for(var i = 0;i<(date.hour() - 8);i++){
-        left += oneHour;
-      }
-
-      for(var i = 0;i<(date.minutes() / 15);i++){
-        left += oneQuarter;
-      }
-
-
-      return left;
     }
 
-    function addDurationToMoment(date,duration){
+    function addDurationToMoment(date,width){
+
+      var duration = Math.ceil((width * 50 / rowWidth) * 3600000);
+
       date = moment(date);
 
       var hour = parseInt(duration / 3600000);
@@ -828,32 +693,31 @@ moment.locale('fr');
       return date;
     }
 
-    //Récupération de la taille de la scrollbar
-    function getScrollBarWidth () {
-      var inner = document.createElement('p');
-      inner.style.width = "100%";
-      inner.style.height = "200px";
+    function getAgentRow(agent){
+      agent = parseInt(agent);
+      return $('tr:nth-child('+(agent+1)+') .grid .row',agentTable);
+    }
 
-      var outer = document.createElement('div');
-      outer.style.position = "absolute";
-      outer.style.top = "0px";
-      outer.style.left = "0px";
-      outer.style.visibility = "hidden";
-      outer.style.width = "200px";
-      outer.style.height = "150px";
-      outer.style.overflow = "hidden";
-      outer.appendChild (inner);
+    function getTopHeight(idx,positionningArray){
+      var beginningRow = undefined;
+      var numberOfRow = 0;
 
-      document.body.appendChild (outer);
-      var w1 = inner.offsetWidth;
-      outer.style.overflow = 'scroll';
-      var w2 = inner.offsetWidth;
-      if (w1 == w2) w2 = outer.clientWidth;
+      for(var i = 0;i<positionningArray.length;i++){
+        if(positionningArray[i].includes(idx)){
+          if(beginningRow == undefined)
+            beginningRow = i;
 
-      document.body.removeChild (outer);
+          numberOfRow += 1;
+        }
+      }
 
-      return (w1 - w2);
-    };
+      return {height : (height / positionningArray.length) * numberOfRow,
+              top : (height / positionningArray.length) * beginningRow };
+    }
+
+    function toggleLoad(){
+      loader.toggle();
+    }
 
     function LightenDarkenColor(col, amt) {
 
