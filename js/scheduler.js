@@ -1,5 +1,23 @@
 moment.locale('fr');
 
+toastr.options = {
+  "closeButton": false,
+  "debug": false,
+  "newestOnTop": false,
+  "progressBar": true,
+  "positionClass": "toast-bottom-center",
+  "preventDuplicates": false,
+  "onclick": null,
+  "showDuration": "300",
+  "hideDuration": "1000",
+  "timeOut": "2000",
+  "extendedTimeOut": "1000",
+  "showEasing": "swing",
+  "hideEasing": "linear",
+  "showMethod": "fadeIn",
+  "hideMethod": "fadeOut"
+};
+
 (function ( $ ) {
 
     var hours = [8,9,10,11,12,13,14,15,16,17];
@@ -202,7 +220,7 @@ moment.locale('fr');
             if(!noOtherDimension && !newArray && (!positionned || greppedEvent.length == 0)){
               var lastOfRow = event[dimension[dimension.length - 1]];
 
-              if(moment(element.start,"DD/MM/YYYY HH:mm").isAfter(lastOfRow.end)){
+              if(moment(element.start,"DD/MM/YYYY HH:mm").isSameOrAfter(lastOfRow.end)){
                   dimension.push(idx+1);
                   if(!eventsInArray.includes(idx+1)) eventsInArray.push(idx+1);
                   positionned = true;
@@ -427,100 +445,109 @@ moment.locale('fr');
 
       var resizElement = undefined;
       var axis = undefined;
-      $(".event").resizable({
-          handles: 'e, w',
-          start: function( event,ui) {
-            resizElement = $(this);
-            axis = resizElement.data('ui-resizable').axis;
-          },
-          resize: function(event,ui){
-            resizElement.hide();
-            var elem = $(document.elementFromPoint(event.pageX,event.pageY));
-
-            var originalDates = $('p',resizElement).html();
-
-            newDate = moment(elem.attr('data-date'),"DD HH:mm");
-            if(axis == "e"){
-              //Ajout d'un quart d'heure
-              newDate = originalDates.substr(0,originalDates.indexOf(" - ")+1) + " - " + newDate.add(15,"minutes").format("HH:mm");
-            } else {
-              newDate = newDate.add(15,"minutes").format("HH:mm") + " - " + originalDates.substr(originalDates.indexOf(" - ")+3);
-            }
-
-            $('p',resizElement).html(newDate);
-            resizElement.show();
-          },
-          stop: function( event) {
-
-          },
-      }).on('resize',function(e){
-        e.stopPropagation();
-      });
 
       var dragElement = undefined;
-      var previousAgentRow = undefined;
-      //.draggable( "disable" )
-      $(".event").draggable({
-        containment: [160,140,$(window).width(),$(window).height()],
-        scroll: false,
-        start: function() {
-          dragElement = $(this);
-          previousAgentRow = dragElement.closest('.row');
-          dragElement.css({
-            "left": "auto",
-            "right": "auto",
-            "width": rowWidth - parseInt(dragElement.css('right')) - parseInt(dragElement.css('left'))
-          });
-        },
-        stop: function(e) {
 
-          //Récupération des informations
-          var id = dragElement.attr('data-index');
-          var previousAgent = dragElement.attr('data-agent');
-          var offset = dragElement.offset();
-          var width = dragElement.width();
+      $(".agent").livequery(
+      '.event',
+      function(elem) {
 
-          //Récupération de la position
-          dragElement.closest(".row").find('.event').hide();
-          var doc = $(document.elementFromPoint(e.pageX,e.pageY));
-          var agent = agents.indexOf(doc.closest('.agent').attr('data-agent'));
-          doc.closest('.row').find('.event').remove();
+          $(elem).resizable({
+            handles: 'e, w',
+            start: function( event,ui) {
+              resizElement = $(this);
+              axis = resizElement.data('ui-resizable').axis;
+            },
+            resize: function(event,ui){
+              resizElement.hide();
+              var elem = $(document.elementFromPoint(event.pageX,event.pageY));
 
-          toggleLoad();
+              var originalDates = $('p',resizElement).html();
 
-          //Récupération de l'événement
-          var event = agentsEvents[agent].events[id];
+              newDate = moment(elem.attr('data-date'),"DD HH:mm");
+              if(axis == "e"){
+                //Ajout d'un quart d'heure
+                newDate = originalDates.substr(0,originalDates.indexOf(" - ")+1) + " - " + newDate.add(15,"minutes").format("HH:mm");
+              } else {
+                newDate = newDate.add(15,"minutes").format("HH:mm") + " - " + originalDates.substr(originalDates.indexOf(" - ")+3);
+              }
 
-          //Lors d'un changement d'agent
-          if(previousAgent != agent) event = putEventOnNewAgent(id,previousAgent,agent);
+              $('p',resizElement).html(newDate);
+              resizElement.show();
+            },
+            stop: function( event) {
 
-          //Mise a jour des horaires
-          var start = getMomentWithLeft(offset.left - 160);
-          var end = addDurationToMoment(start,width);
-          event.changeHoraires(
-            start,
-            end
-          );
+            },
+        }).on('resize',function(e){
+          e.stopPropagation();
+        });
 
-          //Rafraichissement des différents
-          refreshLine(agent);
-          if(previousAgent != agent){
-             //$('.agent[data-agent="'++'"]'document).find('.event').remove();
-             previousAgentRow.find('.event').remove();
-             refreshLine(previousAgent);
+
+        //.draggable( "disable" )
+        $(elem).draggable({
+          containment: [160,140,$('.agents').width()-$(elem).width(),$(window).height()-$(elem).height()],
+          scroll: false,
+          start: function() {
+            dragElement = $(this);
+            dragElement.css({
+              "left": "auto",
+              "right": "auto",
+              "z-index": "10000",
+              "width": rowWidth - parseInt(dragElement.css('right')) - parseInt(dragElement.css('left'))
+            });
+          },
+          stop: function(e) {
+
+            try {
+
+              //Récupération des informations
+              var infos = getDragElementInfo(dragElement);
+
+              //Masquer les evenements de la ligne
+              var agent = getAgent(e.pageY);
+              removeEventRow(agent);
+
+              //Affichage du chargement
+              toggleLoad();
+
+              //Récupération de l'événement
+              var event = infos.previousAgent != agent ? putEventOnNewAgent(infos.id,infos.previousAgent,agent) : agentsEvents[agent].events[infos.id];
+
+              //Mise a jour des horaires
+              var start = getMomentWithLeft(infos.offset.left - 160);
+              var end = addDurationToMoment(start,infos.width);
+              event.changeHoraires(
+                start,
+                end
+              );
+
+              //Rafraichissement des différents
+              refreshLine(agent);
+              if(infos.previousAgent != agent){
+                 removeEventRow(infos.previousAgent);
+                 refreshLine(infos.previousAgent);
+              }
+
+            } catch (e) {
+
+              refreshLine(infos.previousAgent);
+              toastr.warning('Déplacement en dehors du planning. Opération annulé');
+
+            }
+
+            toggleLoad();
+
+          },
+          drag: function(e,ui){
+            var offset = dragElement.offset();
+            var width = dragElement.width();
+
+            var start = getMomentWithLeft(offset.left - 160);
+            var end = addDurationToMoment(start,width);
+            $('p b',dragElement).html(start.format('HH:mm') + ' - ' + end.format('HH:mm'));
           }
+        });
 
-          bindEvent(scheduler);
-
-          toggleLoad();
-
-        },
-        drag: function(e,ui){
-          if(ui.offset.left + dragElement.width() > $(window).width())
-            ui.position.left = $(window).width() - dragElement.width() - 162;
-          if(ui.offset.top + dragElement.height() > $(window).height())
-            ui.position.top = $(window).height() - dragElement.height() - 140;
-        }
       });
 
     };
@@ -639,7 +666,7 @@ moment.locale('fr');
 
       //Obtention du nombre de jour de difference
       var days = parseInt( hours / 10 );
-      var day = moment().day(days+1);
+      var date = moment().isoWeekday(1).add(days,"days");
 
       //calcule de l'heure et des minutes de depart
       var hour = Math.floor((hours - (10*days))) + 8;
@@ -652,7 +679,10 @@ moment.locale('fr');
         hour += 1;
       }
 
-      return moment(day.date() + " " + hour + ":" + minutes,"DD HH:mm");
+      date.hour(hour);
+      date.minutes(minutes);
+
+      return date;
     }
 
     function getLeftWithMoment(date){
@@ -681,11 +711,11 @@ moment.locale('fr');
         }
       }
 
-      if(moment(date).add(minutes,"minutes").hour() > 18 ){
+      if(moment(date).add(minutes,"minutes").hour() >= 18 &&  moment(date).add(minutes,"minutes").minutes() > 0){
         date.add(1,"day");
-        hour = duration - (14 * 3600000);
         date.set("hour",8);
-        minutes = minutes - date.minutes();
+        minutes = minutes - (60 - date.minutes());
+        date.set("minutes",0);
       }
 
       date.add(minutes,"minutes");
@@ -717,6 +747,27 @@ moment.locale('fr');
 
     function toggleLoad(){
       loader.toggle();
+    }
+
+    function getDragElementInfo(dragElement){
+      return { id : parseInt(dragElement.attr('data-index')),
+        previousAgent : parseInt(dragElement.attr('data-agent')),
+        offset : dragElement.offset(),
+        width : dragElement.width()
+      }
+    }
+
+    function hideEventRow(row){
+      $('.event',row).hide();
+    }
+
+    function removeEventRow(row){
+      $('.agent:nth-child('+(row+1)+') .row .event').remove();
+      //$('.event',row).remove();
+    }
+
+    function getAgent(top){
+      return Math.floor((top - 140) / height);
     }
 
     function LightenDarkenColor(col, amt) {

@@ -18,10 +18,14 @@ class Event {
 
   setStart(start){
     this.start = start;
+    this.start.second(0);
+    this.start.millisecond(0);
   }
 
   setEnd(end){
     this.end = end;
+    this.end.second(0);
+    this.end.millisecond(0);
   }
 
 }
