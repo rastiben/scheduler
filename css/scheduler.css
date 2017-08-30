@@ -88,6 +88,7 @@ table{
   width: 160px;
   min-width: 160px;
   border: 1px solid lightgray;
+  border-bottom: 1px solid black;
   text-align: center;
   -moz-user-select: none;
   -webkit-user-select: none;
@@ -112,7 +113,7 @@ table{
 }
 
 .days td{
-  border-right: 1px solid black;
+  border-right: 1px solid gray;
   vertical-align: baseline;
   padding-top: 9px;
   font-size: 15px;
@@ -136,12 +137,12 @@ table{
 }
 
 .hours td{
-  border-right: 1px solid black;
+  border-right: 1px solid gray;
 }
 
-.hours table td{
-  border-right: 1px solid black;
-}
+/*.hours table td{
+  border-right: 1px solid gray;
+}*/
 
 .hours table td:last-child{
   border: none;
@@ -151,10 +152,9 @@ table{
   border-right: 0px;
 }*/
 
-/*.grid,
-.grid table{
-  width: 100%;
-}*/
+.grid{
+  border-bottom: 1px solid black;
+}
 
 .grid table{
   position: relative;
@@ -166,6 +166,10 @@ table{
   background: black;
   z-index: 1000;
   border-radius: 5px;
+}
+
+.grid .event:hover{
+  z-index:10000;
 }
 
 .grid .event p{
@@ -201,7 +205,7 @@ table{
 }
 
 .quarter-child{
-  border-right: 1px solid black;
+  border-right: 1px solid gray;
 }
 
 /*.quarter .quarter-child:last-child{
@@ -213,7 +217,7 @@ table{
 }
 
 .quarter-child td:nth-child(2){
-  border-right: 1px solid black;
+  border-right: 1px solid gray;
 }
 
 /*.quarter-child td:nth-child(2){
@@ -289,3 +293,6 @@ table{
   margin-top: -50px;
   color: red;
 }
+
+
+/*COLOR*/

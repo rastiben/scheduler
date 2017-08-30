@@ -6,7 +6,7 @@ class Agent {
     this.events = [];
   }
 
-  addEvent(event){
+  addEvent(event,sort=false){
     this.events.push(new Event(
       this,
       event.id,
@@ -16,7 +16,7 @@ class Agent {
       event.type,
       event.color
     ));
-    //this.sortEvents();
+    if(sort) this.sortEvents();
   }
 
   removeEvent(id){

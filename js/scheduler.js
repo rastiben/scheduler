@@ -39,22 +39,22 @@ toastr.options = {
     var agents = ["Benoit Rastier","Charles Cluzel","Matthieu Nowak","Nicolas Maniez","Florent Quétaud","Joel Pelhate","Nicolas Villain","Lionel Tarlet","Jerome Papuchon","Yoann Pachet"];
     var colorArray = [{
       id:1,
-      color:'#E67E22'
+      color:'#990000'
     },{
       id:2,
-      color:'#E74C3C'
+      color:'#008080'
     },{
       id:3,
-      color:'#BB8FCE'
+      color:'#ff7f50'
     },{
       id:4,
-      color:'#5DADE2'
+      color:'#87ceeb'
     },{
       id:5,
-      color:'#58D68D'
+      color:'#da70d6'
     },{
       id:6,
-      color:'#F1C40F'
+      color:'#ffa500'
     }];
 
     var selector = undefined;
@@ -288,8 +288,8 @@ toastr.options = {
       where.append('<div data-animation="perspective" data-arrow="true" \
       data-size="big" title="'+element.title+'" data-agent="'+agent+'" \
       data-index="'+idx+'" data-type='+element.type+' class="event ui-widget ui-widget-content" \
-      style="height:'+topHeight.height+'px;top:'+topHeight.top+'px;left:'+left+'px;right:'+right+'px;background:'+LightenDarkenColor(element.color,70)+';border: 2px '+element.color+' solid !important;"> \
-      <p style="color:'+element.color+'"><b>'+start.format("HH:mm")+' - '+end.format("HH:mm")+'</b></p></div>');
+      style="height:'+topHeight.height+'px;top:'+topHeight.top+'px;left:'+left+'px;right:'+right+'px;background:linear-gradient(to right bottom,'+element.color+','+LightenDarkenColor(element.color,50)+');"> \
+      <p style="color:white"><b>'+start.format("HH:mm")+' - '+end.format("HH:mm")+'</b></p></div>');
 
     }
 
@@ -454,29 +454,30 @@ toastr.options = {
 
           $(elem).resizable({
             handles: 'e, w',
-            start: function( event,ui) {
+            start: function( e,ui) {
               resizElement = $(this);
+              resizElement.css({'z-index':'10000'});
               axis = resizElement.data('ui-resizable').axis;
             },
-            resize: function(event,ui){
-              resizElement.hide();
-              var elem = $(document.elementFromPoint(event.pageX,event.pageY));
+            resize: function(e,ui){
+              var offset = resizElement.offset();
+              var width = resizElement.width();
 
-              var originalDates = $('p',resizElement).html();
+              var start = getMomentWithLeft(offset.left - 160);
+              var end = addDurationToMoment(start,width);
 
-              newDate = moment(elem.attr('data-date'),"DD HH:mm");
-              if(axis == "e"){
-                //Ajout d'un quart d'heure
-                newDate = originalDates.substr(0,originalDates.indexOf(" - ")+1) + " - " + newDate.add(15,"minutes").format("HH:mm");
-              } else {
-                newDate = newDate.add(15,"minutes").format("HH:mm") + " - " + originalDates.substr(originalDates.indexOf(" - ")+3);
-              }
-
-              $('p',resizElement).html(newDate);
-              resizElement.show();
+              setElementTexte(resizElement,start.format('HH:mm') + ' - ' + end.format('HH:mm'));
             },
-            stop: function( event) {
+            stop: function(e) {
 
+              var infos = getDragElementInfo(resizElement);
+
+              var agent = getAgent(resizElement.offset().top);
+              removeEventRow(agent);
+
+              var event = agentsEvents[agent].events[infos.id]
+
+              majAndRefreshAgents(infos,event,agent);
             },
         }).on('resize',function(e){
           e.stopPropagation();
@@ -493,7 +494,7 @@ toastr.options = {
               "left": "auto",
               "right": "auto",
               "z-index": "10000",
-              "width": rowWidth - parseInt(dragElement.css('right')) - parseInt(dragElement.css('left'))
+              "width": rowWidth - Math.ceil(parseFloat(dragElement.css('right'))) - Math.ceil(parseFloat(dragElement.css('left')))
             });
           },
           stop: function(e) {
@@ -504,7 +505,7 @@ toastr.options = {
               var infos = getDragElementInfo(dragElement);
 
               //Masquer les evenements de la ligne
-              var agent = getAgent(e.pageY);
+              var agent = getAgent(infos.offset.top);
               removeEventRow(agent);
 
               //Affichage du chargement
@@ -513,20 +514,8 @@ toastr.options = {
               //Récupération de l'événement
               var event = infos.previousAgent != agent ? putEventOnNewAgent(infos.id,infos.previousAgent,agent) : agentsEvents[agent].events[infos.id];
 
-              //Mise a jour des horaires
-              var start = getMomentWithLeft(infos.offset.left - 160);
-              var end = addDurationToMoment(start,infos.width);
-              event.changeHoraires(
-                start,
-                end
-              );
-
-              //Rafraichissement des différents
-              refreshLine(agent);
-              if(infos.previousAgent != agent){
-                 removeEventRow(infos.previousAgent);
-                 refreshLine(infos.previousAgent);
-              }
+              //Mise a jour de l'element et refresh des lignes
+              majAndRefreshAgents(infos,event,agent,infos.previousAgent);
 
             } catch (e) {
 
@@ -544,7 +533,8 @@ toastr.options = {
 
             var start = getMomentWithLeft(offset.left - 160);
             var end = addDurationToMoment(start,width);
-            $('p b',dragElement).html(start.format('HH:mm') + ' - ' + end.format('HH:mm'));
+
+            setElementTexte(dragElement,start.format('HH:mm') + ' - ' + end.format('HH:mm'));
           }
         });
 
@@ -691,6 +681,27 @@ toastr.options = {
 
     }
 
+    function cutElement(infos,event,agent){
+
+      var end = moment(event.end);
+      var daysDiff = end.diff(event.start,'days')+1;
+
+      event.changeHoraires(event.start,moment(event.start).hour(18).minute(0));
+
+      for(var i=1;i<=daysDiff-1;i++){
+        createElement(agent,
+          event,
+          moment(event.start).add(i,"days").hour(8).minute(0),
+          moment(event.start).add(i,"days").hour(18).minute(0));
+      }
+
+      createElement(agent,
+        event,
+        moment(event.start).add(daysDiff,"days").hour(8).minute(0),
+        end);
+
+    }
+
     function addDurationToMoment(date,width){
 
       var duration = Math.ceil((width * 50 / rowWidth) * 3600000);
@@ -721,6 +732,17 @@ toastr.options = {
       date.add(minutes,"minutes");
 
       return date;
+    }
+
+    function createElement(agent,event,start,end){
+      agentsEvents[agent].addEvent({
+        id:event.id,
+        start:start,
+        end:end,
+        title:event.title,
+        type:event.type,
+        color:event.color
+      },true);
     }
 
     function getAgentRow(agent){
@@ -768,6 +790,28 @@ toastr.options = {
 
     function getAgent(top){
       return Math.floor((top - 140) / height);
+    }
+
+    function setElementTexte(element,texte){
+      $('p b',element).html(texte);
+    }
+
+    function majAndRefreshAgents(infos,event,agent,previousAgent=null){
+      //Mise a jour des horaires
+      var start = getMomentWithLeft(infos.offset.left - 160);
+      var end = addDurationToMoment(start,infos.width);
+      event.changeHoraires(
+        start,
+        end
+      );
+      if(start.date() != end.date()) cutElement(infos,event,agent);
+
+      //Rafraichissement des différents
+      refreshLine(agent);
+      if(previousAgent != null && previousAgent != agent){
+         removeEventRow(previousAgent);
+         refreshLine(previousAgent);
+      }
     }
 
     function LightenDarkenColor(col, amt) {
