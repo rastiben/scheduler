@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <link rel="stylesheet" href="./css/scheduler.css">
     <link rel="stylesheet" href="./css/bootstrap.min.css">
+    <link rel="stylesheet" href="./css/bootstrap-datetimepicker.min.css">
     <link rel="stylesheet" href="./css/jquery-ui.min.css">
     <link rel="stylesheet" href="./css/tippy.css">
     <link rel="stylesheet" href="./css/toastr.css">
@@ -13,13 +14,56 @@
     <div class="loaders">
       <img src="./assets/svg-loaders/ball-triangle.svg" width="100" alt="">
     </div>
+
+    <div class="modal fade" id="editEventModal" tabindex="-1" role="dialog" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close pull-right" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+            <h5 class="modal-title"><b>Edition de l'intervention (<span id="displayDuree"></span>)</b></h5>
+          </div>
+          <div class="modal-body col-md-12">
+            <form class="form-inline col-md-12">
+              <div class="form-group col-md-5">
+                <input type="text" class="form-control datetimepicker" id="eventStart" placeholder="Date de début">
+              </div>
+              <span style="line-height:38px" class="col-md-2 text-center">à</span>
+              <div class="form-group col-md-5">
+                <input type="text" class="form-control datetimepicker" id="eventEnd" placeholder="Date de fin">
+              </div>
+              <div class="form-group col-md-12">
+                <input type="text" class="form-control" placeholder="Client" />
+              </div>
+              <div class="form-group col-md-12">
+                <select class="form-control col-md-12">
+                  <option hidden>Type de prestation</option>
+                  <option>Hotline</option>
+                  <option>Atelier</option>
+                  <option>Contrat</option>
+                  <option>Developpement</option>
+                </select>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Annuler</button>
+            <button type="button" class="btn btn-primary">Sauvegarder</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="scheduler"></div>
 
   </body>
   <script src="./js/jquery-3.2.1.min.js"></script>
+  <script src="./js/popper.min.js"></script>
   <script src="./js/bootstrap.min.js"></script>
   <script src="./js/moment.js"></script>
   <script src="./js/jquery-ui.min.js"></script>
+  <script src="./js/bootstrap-datetimepicker.min.js"></script>
   <script src="./js/tippy.js"></script>
   <script src="./js/liveQuery.js"></script>
   <script src="./js/toastr.js"></script>
@@ -27,6 +71,14 @@
   <script src="./js/event.js"></script>
   <script src="./js/scheduler.js"></script>
   <script>
+
+    $(function () {
+        $('.datetimepicker').datetimepicker({
+          stepping:15,
+          format:"DD/MM/YYYY HH:mm",
+          locale: 'fr'
+        });
+    });
 
     $('.scheduler').scheduler();
 

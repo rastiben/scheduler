@@ -15,6 +15,10 @@ table{
   border: none;
 }
 
+table td{
+  padding: 0px !important;
+}
+
 .infoBar{
   height: 140px;
   position: relative;
@@ -59,7 +63,7 @@ table{
   margin-top: -1px;
 }
 
-.btn.btn-secondary{
+/*.btn.btn-secondary{
   background: white;
   border: 1px solid lightgray;
   transition: all 0.2s linear;
@@ -67,7 +71,7 @@ table{
 
 .btn.btn-secondary:hover{
   background: #e6e6e6;
-}
+}*/
 
 .changeDate{
   position: absolute;
@@ -115,12 +119,13 @@ table{
 .days td{
   border-right: 1px solid gray;
   vertical-align: baseline;
-  padding-top: 9px;
+  padding-top: 9px !important;
   font-size: 15px;
 }
 
 .strech{
   align-items: stretch;
+  height:40px;
 }
 
 .strech > td{
@@ -163,9 +168,14 @@ table{
 .grid .event{
   position: absolute;
   top: 0px;
-  background: black;
+  background: transparent;
   z-index: 1000;
+}
+
+.grid .event div{
+  height: 90%;
   border-radius: 5px;
+  box-shadow: 3px 5px 16px -3px;
 }
 
 .grid .event:hover{
@@ -258,7 +268,7 @@ table{
   width: 10px !important;
   border-radius: 50%;
   position: absolute !important;
-  top: 50% !important;
+  top: 45% !important;
   margin-top: -5px;
   border: 1px solid white;
 }
@@ -296,3 +306,45 @@ table{
 
 
 /*COLOR*/
+.modal {
+  text-align: center;
+  padding: 0!important;
+}
+
+.modal:before {
+  content: '';
+  display: inline-block;
+  height: 100%;
+  vertical-align: middle;
+  margin-right: -4px;
+}
+
+.modal-dialog {
+  display: inline-block;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.modal-header{
+  background: #EEF6F9;
+  border-top-left-radius: 5px;
+  border-top-right-radius: 5px;
+}
+
+.modal-title{
+  font-size: 16px;
+  color: #6B7581;
+}
+
+.modal-footer{
+  border-top:none !important;
+}
+
+.form-group{
+  margin-bottom: 15px !important;
+}
+
+.form-group input,
+.form-group select{
+  width: 100% !important;
+}

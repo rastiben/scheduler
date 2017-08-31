@@ -86,6 +86,11 @@ toastr.options = {
       $( window ).resize(function() {
         init();
       });
+
+      /*GESTION DU MODAL*/
+      $('#editEventModal').on('shown.bs.modal', function() {
+           generate_modal_body();
+      });
     };
 
     function init(obj){
@@ -288,8 +293,8 @@ toastr.options = {
       where.append('<div data-animation="perspective" data-arrow="true" \
       data-size="big" title="'+element.title+'" data-agent="'+agent+'" \
       data-index="'+idx+'" data-type='+element.type+' class="event ui-widget ui-widget-content" \
-      style="height:'+topHeight.height+'px;top:'+topHeight.top+'px;left:'+left+'px;right:'+right+'px;background:linear-gradient(to right bottom,'+element.color+','+LightenDarkenColor(element.color,50)+');"> \
-      <p style="color:white"><b>'+start.format("HH:mm")+' - '+end.format("HH:mm")+'</b></p></div>');
+      style="height:'+topHeight.height+'px;top:'+topHeight.top+'px;left:'+left+'px;right:'+right+'px;"> \
+      <div style="background:linear-gradient(to top,'+element.color+','+LightenDarkenColor(element.color,50)+');"><p style="color:white"><b>'+start.format("HH:mm")+' - '+end.format("HH:mm")+'</b></p></div></div>');
 
     }
 
@@ -428,7 +433,7 @@ toastr.options = {
       $('.selector',document)
       .off('click')
       .on('click',function(){
-        alert("toto");
+        //alert("toto");
       });
 
     }
@@ -564,7 +569,7 @@ toastr.options = {
       agents.forEach(function(element){
         var string = "";
         string += "<tr class='agent' style='height:"+height+"px' data-agent='"+element+"'><td unselectable='on' onselectstart='return false;' onmousedown='return false;' class='name'>"+element+"</td> \
-        <td class='grid'><table><tbody class='row'><tr>"+grid+"</tr></tbody></table></td></tr>";
+        <td class='grid'><table><tbody class='tRow'><tr>"+grid+"</tr></tbody></table></td></tr>";
         agentTable.append(string);
       });
     }
@@ -681,27 +686,6 @@ toastr.options = {
 
     }
 
-    function cutElement(infos,event,agent){
-
-      var end = moment(event.end);
-      var daysDiff = end.diff(event.start,'days')+1;
-
-      event.changeHoraires(event.start,moment(event.start).hour(18).minute(0));
-
-      for(var i=1;i<=daysDiff-1;i++){
-        createElement(agent,
-          event,
-          moment(event.start).add(i,"days").hour(8).minute(0),
-          moment(event.start).add(i,"days").hour(18).minute(0));
-      }
-
-      createElement(agent,
-        event,
-        moment(event.start).add(daysDiff,"days").hour(8).minute(0),
-        end);
-
-    }
-
     function addDurationToMoment(date,width){
 
       var duration = Math.ceil((width * 50 / rowWidth) * 3600000);
@@ -734,20 +718,9 @@ toastr.options = {
       return date;
     }
 
-    function createElement(agent,event,start,end){
-      agentsEvents[agent].addEvent({
-        id:event.id,
-        start:start,
-        end:end,
-        title:event.title,
-        type:event.type,
-        color:event.color
-      },true);
-    }
-
     function getAgentRow(agent){
       agent = parseInt(agent);
-      return $('tr:nth-child('+(agent+1)+') .grid .row',agentTable);
+      return $('tr:nth-child('+(agent+1)+') .grid .tRow',agentTable);
     }
 
     function getTopHeight(idx,positionningArray){
@@ -784,7 +757,7 @@ toastr.options = {
     }
 
     function removeEventRow(row){
-      $('.agent:nth-child('+(row+1)+') .row .event').remove();
+      $('.agent:nth-child('+(row+1)+') .tRow .event').remove();
       //$('.event',row).remove();
     }
 
@@ -804,7 +777,7 @@ toastr.options = {
         start,
         end
       );
-      if(start.date() != end.date()) cutElement(infos,event,agent);
+      if(start.date() != end.date()) agentsEvents[agent].cutElement(event);
 
       //Rafraichissement des différents
       refreshLine(agent);
@@ -843,5 +816,43 @@ toastr.options = {
       return (usePound?"#":"") + (g | (b << 8) | (r << 16)).toString(16);
 
   }
+
+  /*GESTION DU MODAL*/
+  function generate_modal_body(){
+
+    //Set Start Date
+    var start = getMomentWithLeft(selector.offset().left - 158);
+    $('#eventStart').data("DateTimePicker").date(start);
+
+    //Set End Date
+    var duration = selector.width();
+    //var duration = rowWidth - Math.ceil(parseFloat(selector.css('right'))) - Math.ceil(parseFloat(selector.css('left')));
+    var end = addDurationToMoment(start,duration);
+    $('#eventEnd').data("DateTimePicker").date(end);
+
+    //Afficher la duree de l'intervention
+    var workTime = getWorkTime(moment(end).hour(18).diff(moment(start).hour(8),"days"),
+                               end.diff(start,'seconds'));
+    $('#displayDuree').html(workTime);
+
+  }
+
+  function getWorkTime(nbDays,totalHours){
+
+    totalHours -= 14 * nbDays * 3600;
+
+    var days = Math.floor(totalHours / 27900);
+    if(days >= 1){
+        totalHours = totalHours - (days * 27900);
+    }
+    var hours = Math.floor(totalHours / 3600);
+    if(hours >= 1){
+        totalHours = totalHours - (hours * 3600);
+    }
+    var minutes = Math.floor(totalHours / 60);
+
+    return days + "J " + hours + "H " + minutes + "M";
+  }
+
 
 }( jQuery ));

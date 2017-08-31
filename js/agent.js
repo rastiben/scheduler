@@ -6,7 +6,7 @@ class Agent {
     this.events = [];
   }
 
-  addEvent(event,sort=false){
+  addEvent(event){
     this.events.push(new Event(
       this,
       event.id,
@@ -16,12 +16,50 @@ class Agent {
       event.type,
       event.color
     ));
-    if(sort) this.sortEvents();
+    //if(sort) this.sortEvents();
+  }
+
+  createEvent(event){
+
+    this.addEvent(event);
+
+    //Ajout en base
   }
 
   removeEvent(id){
     this.events.splice(id,1);
     //this.sortEvents();
+  }
+
+  cutElement(event){
+
+    var end = moment(event.end);
+    var daysDiff = moment(end).hour(18).minute(0).diff(moment(event.start).hour(8).minute(0),'days');
+
+    event.changeHoraires(event.start,moment(event.start).hour(18).minute(0));
+
+    for(var i=1;i<daysDiff;i++){
+      this.createEvent({
+        id:event.id,
+        start:moment(event.start).add(i,"days").hour(8).minute(0),
+        end:moment(event.start).add(i,"days").hour(18).minute(0),
+        title:event.title,
+        type:event.type,
+        color:event.color
+      });
+    }
+
+    this.createEvent({
+      id:event.id,
+      start:moment(event.start).add(daysDiff,"days").hour(8).minute(0),
+      end:end,
+      title:event.title,
+      type:event.type,
+      color:event.color
+    });
+
+    this.sortEvents()
+
   }
 
   sortEvents(){
