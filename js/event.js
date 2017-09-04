@@ -28,4 +28,8 @@ class Event {
     this.end.millisecond(0);
   }
 
+  setTitle(title){
+    this.title = title;
+  }
+
 }

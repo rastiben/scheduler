@@ -22,34 +22,43 @@
             <button type="button" class="close pull-right" data-dismiss="modal" aria-label="Close">
               <span aria-hidden="true">&times;</span>
             </button>
-            <h5 class="modal-title"><b>Edition de l'intervention (<span id="displayDuree"></span>)</b></h5>
+            <h5 class="modal-title"><b id="title"></b></h5>
           </div>
           <div class="modal-body col-md-12">
-            <form class="form-inline col-md-12">
+            <form id="manageEvent" class="form-inline col-md-12">
               <div class="form-group col-md-5">
-                <input type="text" class="form-control datetimepicker" id="eventStart" placeholder="Date de début">
+                <input required type="text" data-required-error="Selectionner une date de début" class="form-control datetimepicker" id="eventStart" placeholder="Date de début">
+                <div class="help-block with-errors"></div>
               </div>
               <span style="line-height:38px" class="col-md-2 text-center">à</span>
               <div class="form-group col-md-5">
-                <input type="text" class="form-control datetimepicker" id="eventEnd" placeholder="Date de fin">
+                <input required type="text" data-required-error="Selectionner une date de fin" class="form-control datetimepicker" id="eventEnd" placeholder="Date de fin">
+                <div class="help-block with-errors"></div>
               </div>
               <div class="form-group col-md-12">
-                <input type="text" class="form-control" placeholder="Client" />
+                <input required type="text" class="form-control" id="client" data-required-error="Selectionner un client" placeholder="Client" />
+                <div class="help-block with-errors"></div>
               </div>
               <div class="form-group col-md-12">
-                <select class="form-control col-md-12">
-                  <option hidden>Type de prestation</option>
+                <select data-required-error="Selectionner un type de prestation" id="type" required class="form-control col-md-12">
                   <option>Hotline</option>
                   <option>Atelier</option>
                   <option>Contrat</option>
                   <option>Developpement</option>
                 </select>
+                <div class="help-block with-errors"></div>
+              </div>
+              <div class="form-group col-md-12">
+                <textarea class="form-control" placeholder="Commentaires"></textarea>
+              </div>
+              <div class="form-group col-md-12">
+                <button type="cancel" class="btn btn-secondary pull-right" data-dismiss="modal">Annuler</button>
+                <button type="submit" class="saveEvent btn btn-primary pull-right">Sauvegarder</button>
               </div>
             </form>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-dismiss="modal">Annuler</button>
-            <button type="button" class="btn btn-primary">Sauvegarder</button>
+
           </div>
         </div>
       </div>
@@ -67,20 +76,48 @@
   <script src="./js/tippy.js"></script>
   <script src="./js/liveQuery.js"></script>
   <script src="./js/toastr.js"></script>
+  <script src="./js/validator.min.js"></script>
   <script src="./js/agent.js"></script>
   <script src="./js/event.js"></script>
   <script src="./js/scheduler.js"></script>
   <script>
 
+    var modal = $('#editEventModal');
+
     $(function () {
         $('.datetimepicker').datetimepicker({
           stepping:15,
           format:"DD/MM/YYYY HH:mm",
-          locale: 'fr'
+          locale: 'fr',
+          daysOfWeekDisabled: [0,6]
         });
     });
 
-    $('.scheduler').scheduler();
+    $("#manageEvent").validator().on('submit', function (e) {
+      if (!e.isDefaultPrevented()) {
+        e.preventDefault();
+
+        var values = {start : $('#eventStart').val(),
+        end : $('#eventEnd').val(),
+        client : $('#client').val(),
+        type : $('#type').val()}
+
+        if($('#title').html().indexOf("Ajout") >= 0)
+          scheduler.addEvent(values);
+        else
+          scheduler.manageEvent(values);
+
+        modal.modal('hide');
+      }
+    });
+
+    var scheduler = $('.scheduler').scheduler();
+
+    /*$(".saveEvent").click(function(e){
+      if(form.valid()){
+        scheduler.addEvent();
+      }
+    });*/
 
   </script>
 </html>

@@ -60,6 +60,7 @@ toastr.options = {
     var selector = undefined;
     var selectorActive = false;
     var ttotal = 0;
+    var valuesClickedItem = undefined;
 
     //Event
     var direction = undefined;
@@ -89,8 +90,13 @@ toastr.options = {
 
       /*GESTION DU MODAL*/
       $('#editEventModal').on('shown.bs.modal', function() {
-           generate_modal_body();
+           if(selector.css('display') != 'none') generate_new_modal_body();
       });
+
+      return {
+        'addEvent': addEvent,
+        'manageEvent': manageEvent
+      };
     };
 
     function init(obj){
@@ -105,16 +111,16 @@ toastr.options = {
         agentsEvents = [];
 
         var horaires = [
-          "28/08/2017 08:30-28/08/2017 12:30",
-          "28/08/2017 14:00-28/08/2017 17:45",
-          "29/08/2017 08:30-29/08/2017 12:30",
-          "29/08/2017 14:00-29/08/2017 17:45",
-          "30/08/2017 08:30-30/08/2017 12:30",
-          "30/08/2017 14:00-30/08/2017 17:45",
-          "31/08/2017 08:30-31/08/2017 12:30",
-          "31/08/2017 14:00-31/08/2017 17:45",
-          "01/09/2017 08:30-01/09/2017 12:30",
-          "01/09/2017 14:00-01/09/2017 17:45",
+          "04/09/2017 08:30-04/09/2017 12:30",
+          "04/09/2017 14:00-04/09/2017 17:45",
+          "05/09/2017 08:30-05/09/2017 12:30",
+          "05/09/2017 14:00-05/09/2017 17:45",
+          "06/09/2017 08:30-06/09/2017 12:30",
+          "06/09/2017 14:00-06/09/2017 17:45",
+          "07/09/2017 08:30-07/09/2017 12:30",
+          "07/09/2017 14:00-07/09/2017 17:45",
+          "08/09/2017 08:30-08/09/2017 12:30",
+          "08/09/2017 14:00-08/09/2017 17:45",
         ];
         //Remplissage des evenements
         agents.forEach(function(element,idx){
@@ -185,6 +191,7 @@ toastr.options = {
     function refreshLine(agent){
 
       //Reorganiser tableau element.
+      removeEventRow(agent);
 
       var event = agentsEvents[agent].events;
       var positionningArray = [[0]];
@@ -430,11 +437,7 @@ toastr.options = {
       });
 
       //Add calendar event
-      $('.selector',document)
-      .off('click')
-      .on('click',function(){
-        //alert("toto");
-      });
+
 
     }
 
@@ -478,7 +481,7 @@ toastr.options = {
               var infos = getDragElementInfo(resizElement);
 
               var agent = getAgent(resizElement.offset().top);
-              removeEventRow(agent);
+              //removeEventRow(agent);
 
               var event = agentsEvents[agent].events[infos.id]
 
@@ -504,17 +507,20 @@ toastr.options = {
           },
           stop: function(e) {
 
+            var infos = undefined;
+
             try {
-
-              //Récupération des informations
-              var infos = getDragElementInfo(dragElement);
-
-              //Masquer les evenements de la ligne
-              var agent = getAgent(infos.offset.top);
-              removeEventRow(agent);
 
               //Affichage du chargement
               toggleLoad();
+
+              //Récupération des informations
+              infos = getDragElementInfo(dragElement);
+
+              //Masquer les evenements de la ligne
+              agent = getAgent(e.pageY);
+              if(agent < 0) throw "Out of planning";
+              //removeEventRow(agent);
 
               //Récupération de l'événement
               var event = infos.previousAgent != agent ? putEventOnNewAgent(infos.id,infos.previousAgent,agent) : agentsEvents[agent].events[infos.id];
@@ -541,6 +547,18 @@ toastr.options = {
 
             setElementTexte(dragElement,start.format('HH:mm') + ' - ' + end.format('HH:mm'));
           }
+        });
+
+        $(elem).on('click',function(e){
+          $('#editEventModal').modal('show');
+          $(elem).css('z-index','auto');
+
+          valuesClickedItem = {
+            agent:parseInt($(elem).attr('data-agent')),
+            index:parseInt($(elem).attr('data-index'))
+          };
+
+          generate_existing_modal_body()
         });
 
       });
@@ -769,7 +787,7 @@ toastr.options = {
       $('p b',element).html(texte);
     }
 
-    function majAndRefreshAgents(infos,event,agent,previousAgent=null){
+    function majAndRefreshAgents(infos,event,agent,previousAgent){
       //Mise a jour des horaires
       var start = getMomentWithLeft(infos.offset.left - 160);
       var end = addDurationToMoment(start,infos.width);
@@ -782,7 +800,7 @@ toastr.options = {
       //Rafraichissement des différents
       refreshLine(agent);
       if(previousAgent != null && previousAgent != agent){
-         removeEventRow(previousAgent);
+         //removeEventRow(previousAgent);
          refreshLine(previousAgent);
       }
     }
@@ -818,14 +836,14 @@ toastr.options = {
   }
 
   /*GESTION DU MODAL*/
-  function generate_modal_body(){
+  function generate_new_modal_body(){
 
     //Set Start Date
     var start = getMomentWithLeft(selector.offset().left - 158);
     $('#eventStart').data("DateTimePicker").date(start);
 
     //Set End Date
-    var duration = selector.width();
+    var duration = selector.width() - 2;
     //var duration = rowWidth - Math.ceil(parseFloat(selector.css('right'))) - Math.ceil(parseFloat(selector.css('left')));
     var end = addDurationToMoment(start,duration);
     $('#eventEnd').data("DateTimePicker").date(end);
@@ -834,7 +852,16 @@ toastr.options = {
     var workTime = getWorkTime(moment(end).hour(18).diff(moment(start).hour(8),"days"),
                                end.diff(start,'seconds'));
     $('#displayDuree').html(workTime);
+    $('#title').html('Ajout d\'un événement');
 
+  }
+
+  function generate_existing_modal_body(){
+    var event = agentsEvents[valuesClickedItem.agent].events[valuesClickedItem.index];
+    $('#eventStart').data("DateTimePicker").date(event.start);
+    $('#eventEnd').data("DateTimePicker").date(event.end);
+    $('#client').val(event.title);
+    $('#title').html('Modification d\'un événement');
   }
 
   function getWorkTime(nbDays,totalHours){
@@ -852,6 +879,49 @@ toastr.options = {
     var minutes = Math.floor(totalHours / 60);
 
     return days + "J " + hours + "H " + minutes + "M";
+  }
+
+  //Ajout d'un événement
+  function addEvent(values){
+    var agent = getAgent($('.selector').offset().top);
+
+    var color = colorArray[Math.floor(Math.random()*colorArray.length)];
+
+    var event = agentsEvents[agent].createEvent({
+      id:top,
+      start:values.start,
+      end:values.end,
+      title:values.client,
+      type:color.id,
+      color:color.color
+    });
+
+    if(event.start.date() != event.end.date()) agentsEvents[agent].cutElement(event);
+
+    refreshLine(agent);
+
+    toastr.success('Event added.');
+
+    setSelectorDisplayed('none');
+  }
+
+  function manageEvent(values){
+    var event = agentsEvents[valuesClickedItem.agent].events[valuesClickedItem.index];
+
+    event.changeHoraires(
+      moment(values.start,"DD/MM/YYYY HH:mm"),
+      moment(values.end,"DD/MM/YYYY HH:mm")
+    )
+    event.setTitle(values.client);
+
+    if(event.start.date() != event.end.date()) agentsEvents[valuesClickedItem.agent].cutElement(event);
+
+    refreshLine(valuesClickedItem.agent);
+
+    toastr.success('Event added.');
+
+    setSelectorDisplayed('none');
+
   }
 
 

@@ -345,6 +345,17 @@ table td{
 }
 
 .form-group input,
-.form-group select{
+.form-group select,
+.form-group textarea{
   width: 100% !important;
+}
+
+.modal-body{
+  background: white !important;
+  border-bottom-right-radius: 5px !important;
+  border-bottom-left-radius: 5px !important;
+}
+
+.saveEvent{
+  margin-right: 15px;
 }

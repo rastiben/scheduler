@@ -7,7 +7,7 @@ class Agent {
   }
 
   addEvent(event){
-    this.events.push(new Event(
+    var event = new Event(
       this,
       event.id,
       event.start,
@@ -15,15 +15,22 @@ class Agent {
       event.title,
       event.type,
       event.color
-    ));
+    );
+    this.events.push(event);
+
+    return event;
     //if(sort) this.sortEvents();
   }
 
   createEvent(event){
 
-    this.addEvent(event);
+    //test si l'evenement est cette semaine
+    event = this.addEvent(event);
+    this.sortEvents()
 
     //Ajout en base
+
+    return event;
   }
 
   removeEvent(id){
@@ -34,11 +41,18 @@ class Agent {
   cutElement(event){
 
     var end = moment(event.end);
+    var daysDiffWithoutWeekEnd = this.daysDiff(moment(event.start).hour(8).minute(0),moment(end).hour(18).minute(0));
     var daysDiff = moment(end).hour(18).minute(0).diff(moment(event.start).hour(8).minute(0),'days');
 
     event.changeHoraires(event.start,moment(event.start).hour(18).minute(0));
 
-    for(var i=1;i<daysDiff;i++){
+    for(var i=1;i<daysDiffWithoutWeekEnd;i++){
+
+      if(moment(event.start).add(i,"days").isoWeekday() == 6){
+        i += 2;
+        //daysDiff += 2;
+      }
+
       this.createEvent({
         id:event.id,
         start:moment(event.start).add(i,"days").hour(8).minute(0),
@@ -47,6 +61,7 @@ class Agent {
         type:event.type,
         color:event.color
       });
+
     }
 
     this.createEvent({
@@ -58,8 +73,23 @@ class Agent {
       color:event.color
     });
 
-    this.sortEvents()
+  }
 
+  daysDiff(start,end){
+    var date = moment(start); // use a clone
+    var nbDays = 0;
+    while (date < end) {
+      if(date.month() == end.month() && date.date() == end.date())
+        break;
+
+      nbDays++;
+      if (date.isoWeekday() == 6 || date.isoWeekday() == 7) {
+        nbDays--;
+      }
+
+      date.add(1,'days');
+    }
+    return nbDays;
   }
 
   sortEvents(){
