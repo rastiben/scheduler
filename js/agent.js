@@ -12,9 +12,10 @@ class Agent {
       event.id,
       event.start,
       event.end,
-      event.title,
+      event.client,
       event.type,
-      event.color
+      event.color,
+      event.comments
     );
     this.events.push(event);
 
@@ -39,57 +40,35 @@ class Agent {
   }
 
   cutElement(event){
-
     var end = moment(event.end);
-    var daysDiffWithoutWeekEnd = this.daysDiff(moment(event.start).hour(8).minute(0),moment(end).hour(18).minute(0));
-    var daysDiff = moment(end).hour(18).minute(0).diff(moment(event.start).hour(8).minute(0),'days');
-
+    var date = moment(event.start);
+    var nbDays = 1;
     event.changeHoraires(event.start,moment(event.start).hour(18).minute(0));
 
-    for(var i=1;i<daysDiffWithoutWeekEnd;i++){
-
-      if(moment(event.start).add(i,"days").isoWeekday() == 6){
-        i += 2;
-        //daysDiff += 2;
+    while (moment(date).add(1,'days').format("DD/MM/YYYY") != end.format("DD/MM/YYYY")) {
+      if (date.isoWeekday() != 6 || date.isoWeekday() != 7) {
+        this.createEvent({
+          id:event.id,
+          start:moment(event.start).add(nbDays,"days").hour(8).minute(0),
+          end:moment(event.start).add(nbDays,"days").hour(18).minute(0),
+          client:event.client,
+          type:event.type,
+          color:event.color
+        });
       }
 
-      this.createEvent({
-        id:event.id,
-        start:moment(event.start).add(i,"days").hour(8).minute(0),
-        end:moment(event.start).add(i,"days").hour(18).minute(0),
-        title:event.title,
-        type:event.type,
-        color:event.color
-      });
-
+      date.add(1,'days');
+      nbDays++;
     }
 
     this.createEvent({
       id:event.id,
-      start:moment(event.start).add(daysDiff,"days").hour(8).minute(0),
+      start:moment(event.start).add(nbDays,"days").hour(8).minute(0),
       end:end,
-      title:event.title,
+      client:event.client,
       type:event.type,
       color:event.color
     });
-
-  }
-
-  daysDiff(start,end){
-    var date = moment(start); // use a clone
-    var nbDays = 0;
-    while (date < end) {
-      if(date.month() == end.month() && date.date() == end.date())
-        break;
-
-      nbDays++;
-      if (date.isoWeekday() == 6 || date.isoWeekday() == 7) {
-        nbDays--;
-      }
-
-      date.add(1,'days');
-    }
-    return nbDays;
   }
 
   sortEvents(){

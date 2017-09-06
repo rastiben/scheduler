@@ -95,9 +95,14 @@ toastr.options = {
 
       return {
         'addEvent': addEvent,
-        'manageEvent': manageEvent
+        'manageEvent': manageEvent,
+        'getAgentsEvents': getAgentsEvents
       };
     };
+
+    function getAgentsEvents(){
+      return agentsEvents;
+    }
 
     function init(obj){
 
@@ -134,9 +139,10 @@ toastr.options = {
               id:i,
               start:horaires[i%10].substr(0,horaires[i%10].indexOf('-')),
               end:horaires[i%10].substr(horaires[i%10].indexOf('-')+1),
-              title:"LAMBDA",
+              client:"LAMBDA",
               type: color.id,
-              color: color.color
+              color: color.color,
+              comments: "Commentaires " + i
             });
           }
 
@@ -298,7 +304,7 @@ toastr.options = {
       right = rowWidth - getLeftWithMoment(end);
 
       where.append('<div data-animation="perspective" data-arrow="true" \
-      data-size="big" title="'+element.title+'" data-agent="'+agent+'" \
+      data-size="big" client="'+element.client+'" data-agent="'+agent+'" \
       data-index="'+idx+'" data-type='+element.type+' class="event ui-widget ui-widget-content" \
       style="height:'+topHeight.height+'px;top:'+topHeight.top+'px;left:'+left+'px;right:'+right+'px;"> \
       <div style="background:linear-gradient(to top,'+element.color+','+LightenDarkenColor(element.color,50)+');"><p style="color:white"><b>'+start.format("HH:mm")+' - '+end.format("HH:mm")+'</b></p></div></div>');
@@ -795,7 +801,7 @@ toastr.options = {
         start,
         end
       );
-      if(start.date() != end.date()) agentsEvents[agent].cutElement(event);
+      if(start.format("DD/MM/YYYY") != end.format("DD/MM/YYYY")) agentsEvents[agent].cutElement(event);
 
       //Rafraichissement des différents
       refreshLine(agent);
@@ -848,10 +854,7 @@ toastr.options = {
     var end = addDurationToMoment(start,duration);
     $('#eventEnd').data("DateTimePicker").date(end);
 
-    //Afficher la duree de l'intervention
-    var workTime = getWorkTime(moment(end).hour(18).diff(moment(start).hour(8),"days"),
-                               end.diff(start,'seconds'));
-    $('#displayDuree').html(workTime);
+    //Affichage du titre
     $('#title').html('Ajout d\'un événement');
 
   }
@@ -860,68 +863,62 @@ toastr.options = {
     var event = agentsEvents[valuesClickedItem.agent].events[valuesClickedItem.index];
     $('#eventStart').data("DateTimePicker").date(event.start);
     $('#eventEnd').data("DateTimePicker").date(event.end);
-    $('#client').val(event.title);
+    $('#client').val(event.client);
+    $('#comments').val(event.comments);
     $('#title').html('Modification d\'un événement');
-  }
-
-  function getWorkTime(nbDays,totalHours){
-
-    totalHours -= 14 * nbDays * 3600;
-
-    var days = Math.floor(totalHours / 27900);
-    if(days >= 1){
-        totalHours = totalHours - (days * 27900);
-    }
-    var hours = Math.floor(totalHours / 3600);
-    if(hours >= 1){
-        totalHours = totalHours - (hours * 3600);
-    }
-    var minutes = Math.floor(totalHours / 60);
-
-    return days + "J " + hours + "H " + minutes + "M";
   }
 
   //Ajout d'un événement
   function addEvent(values){
+    //Obtention de l'agent sur lequel on ajoute l'evenement
     var agent = getAgent($('.selector').offset().top);
 
+    //Temporaire
     var color = colorArray[Math.floor(Math.random()*colorArray.length)];
 
+    //Ajout d'un événement.
     var event = agentsEvents[agent].createEvent({
       id:top,
       start:values.start,
       end:values.end,
-      title:values.client,
+      client:values.client,
       type:color.id,
       color:color.color
     });
 
-    if(event.start.date() != event.end.date()) agentsEvents[agent].cutElement(event);
+    //Découpage de l'événement sur plusieurs jours
+    if(event.start.format("DD/MM/YYYY") != event.end.format("DD/MM/YYYY")) agentsEvents[agent].cutElement(event);
 
+    //Rafraichissement de la ligne
     refreshLine(agent);
 
-    toastr.success('Event added.');
+    //Affichage du alerte
+    toastr.success('Evénement ajouté.');
 
+    //Effacement du selector
     setSelectorDisplayed('none');
   }
 
   function manageEvent(values){
+
+    //Récupération de l'événement modifié
     var event = agentsEvents[valuesClickedItem.agent].events[valuesClickedItem.index];
 
+    //Changements des informations de l'événement
     event.changeHoraires(
       moment(values.start,"DD/MM/YYYY HH:mm"),
       moment(values.end,"DD/MM/YYYY HH:mm")
     )
-    event.setTitle(values.client);
+    event.setClient(values.client);
 
-    if(event.start.date() != event.end.date()) agentsEvents[valuesClickedItem.agent].cutElement(event);
+    //Découpage de l'événement sur plusieurs jours
+    if(event.start.format("DD/MM/YYYY") != event.end.format("DD/MM/YYYY")) agentsEvents[valuesClickedItem.agent].cutElement(event);
 
+    //Rafraichissement de la ligne
     refreshLine(valuesClickedItem.agent);
 
-    toastr.success('Event added.');
-
-    setSelectorDisplayed('none');
-
+    //Affichage du alerte
+    toastr.success('Evénement modifié');
   }
 
 

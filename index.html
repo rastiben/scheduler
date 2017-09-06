@@ -39,17 +39,33 @@
                 <input required type="text" class="form-control" id="client" data-required-error="Selectionner un client" placeholder="Client" />
                 <div class="help-block with-errors"></div>
               </div>
-              <div class="form-group col-md-12">
-                <select data-required-error="Selectionner un type de prestation" id="type" required class="form-control col-md-12">
+              <div id="groupType" class="form-group col-md-12">
+                <select data-required-error="Selectionner un type de prestation" id="type" required class="form-control col-md-6">
                   <option>Hotline</option>
                   <option>Atelier</option>
                   <option>Contrat</option>
+                  <option data-affaire="required">Installation</option>
                   <option>Developpement</option>
                 </select>
                 <div class="help-block with-errors"></div>
               </div>
+              <div id="groupAffaire" class="form-group col-md-6">
+                <input type="text" data-required-error="Indiquez un numéro d'affaire" class="form-control" id="affaire" placeholder="Numéro d'affaire">
+                <div class="help-block with-errors"></div>
+              </div>
               <div class="form-group col-md-12">
-                <textarea class="form-control" placeholder="Commentaires"></textarea>
+                <textarea class="form-control" id="comments" placeholder="Commentaires"></textarea>
+              </div>
+              <div id="groupTechs" class="form-group col-md-12">
+                <label class="col-md-3">Techniciens : </label>
+                <ul class="col-md-9">
+                  <li style="background-image: url('./assets/avatar/mn.jpeg')"></li>
+                  <li style="background-image: url('./assets/avatar/fq.jpeg')"></li>
+                  <li style="background-image: url('./assets/avatar/gm.jpeg')"></li>
+                  <li>
+                    <span class="glyphicon glyphicon-plus"></span>
+                  </li>
+                </ul>
               </div>
               <div class="form-group col-md-12">
                 <button type="cancel" class="btn btn-secondary pull-right" data-dismiss="modal">Annuler</button>
@@ -77,6 +93,8 @@
   <script src="./js/liveQuery.js"></script>
   <script src="./js/toastr.js"></script>
   <script src="./js/validator.min.js"></script>
+  -<script src="./js/msal.js"></script>
+  <script src="./js/o365_calendar.js"></script>
   <script src="./js/agent.js"></script>
   <script src="./js/event.js"></script>
   <script src="./js/scheduler.js"></script>
@@ -100,7 +118,8 @@
         var values = {start : $('#eventStart').val(),
         end : $('#eventEnd').val(),
         client : $('#client').val(),
-        type : $('#type').val()}
+        type : $('#type').val(),
+        comments : $('#comments').val()}
 
         if($('#title').html().indexOf("Ajout") >= 0)
           scheduler.addEvent(values);
@@ -112,6 +131,18 @@
     });
 
     var scheduler = $('.scheduler').scheduler();
+
+    $('#type').change(function(e){
+      if($('option:selected', this).attr("data-affaire") == "required"){
+        $('#groupAffaire').show();
+        $('#groupType').removeClass('col-md-12').addClass('col-md-6');
+        $('#affaire').prop('required',true);
+      } else {
+        $('#groupAffaire').hide();
+        $('#groupType').removeClass('col-md-6').addClass('col-md-12');
+        $('#affaire').prop('required',false);
+      }
+    });
 
     /*$(".saveEvent").click(function(e){
       if(form.valid()){

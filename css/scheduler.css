@@ -350,6 +350,10 @@ table td{
   width: 100% !important;
 }
 
+#groupAffaire{
+  display:none;
+}
+
 .modal-body{
   background: white !important;
   border-bottom-right-radius: 5px !important;
@@ -358,4 +362,35 @@ table td{
 
 .saveEvent{
   margin-right: 15px;
+}
+
+#groupTechs ul{
+  list-style: none;
+}
+
+#groupTechs label{
+  height: 50px;
+  line-height: 50px;
+}
+
+#groupTechs ul li{
+  height: 50px;
+  width: 50px;
+  display: inline-block;
+  margin-left: -25px;
+  background-size: cover;
+  border-radius: 50%;
+  border: 2px dashed #2ECC71;
+}
+
+#groupTechs ul li:first-child{
+  margin-left: 0px;
+
+}
+
+/*SYNC*/
+#syncCalendar{
+  position: absolute;
+  left: 30px;
+  top:13px;
 }
