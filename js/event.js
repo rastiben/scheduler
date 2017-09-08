@@ -29,12 +29,10 @@ class Event {
     this.end.millisecond(0);
   }
 
-  setClient(client){
-    this.client = client;
-  }
-
-  setComments(comments){
-    this.comments = comments;
+  setValues(values){
+      this.changeHoraires(values.start,values.end);
+      this.client = values.clients;
+      this.comments = values.comments;
   }
 
   setOId(o_id){
@@ -42,13 +40,14 @@ class Event {
   }
 
   _save(){
+    
     $.ajax({
       type: "POST",
       url:"",
       data : JSON.stringify(this),
       contentType: "application/json; charset=utf-8",
       success : function(data){
-        
+
       },
       error : function(error){
 

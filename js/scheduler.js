@@ -904,13 +904,8 @@ toastr.options = {
     //Récupération de l'événement modifié
     var event = agentsEvents[valuesClickedItem.agent].events[valuesClickedItem.index];
 
-    //Changements des informations de l'événement
-    event.changeHoraires(
-      moment(values.start,"DD/MM/YYYY HH:mm"),
-      moment(values.end,"DD/MM/YYYY HH:mm")
-    )
-    event.setClient(values.client);
-
+    //Changements des informations de l'événement et values(values);
+    event.setValues(values);
     //Découpage de l'événement sur plusieurs jours
     if(event.start.format("DD/MM/YYYY") != event.end.format("DD/MM/YYYY")) agentsEvents[valuesClickedItem.agent].cutElement(event);
 
