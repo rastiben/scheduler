@@ -1085,12 +1085,19 @@ toastr.options = {
 
     $('#groupTechs ul li:last-child').before("<li id='s"+agent.staff_id+"' style=\"background-image: url('../assets/avatar/"+staff__avatar+"')\"></li>");
 
+<<<<<<< HEAD
     var div = "<div style='display:none' class='horaires col-md-12' id='s"+staff_id+"' class='form-group col-md-12'> \
     <div class='planifInfo col-md-12'><img src='../assets/avatar/"+staff__avatar+"'> \
     <h4>Plannification pour " + staff__firstname + " " + staff__lastname + "</h4></div>";
 
     div += "<div class='fixedThead col-md-12'><table class='table'><thead><th width='30%'>Début</th><th width='30%'>Fin</th><th width='20%'>Sauvegarder</th><th width='20%'>Supprimer</th></thead></table></div>\
     <div class='col-md-12'><div class='scrollableTable'><table class='table'><thead><th width='30%'></th><th width='30%'></th><th width='20%'></th><th width='20%'></th></thead><tbody>";
+=======
+    //Changements des informations de l'événement et values(values);
+    event.setValues(values);
+    //Découpage de l'événement sur plusieurs jours
+    if(event.start.format("DD/MM/YYYY") != event.end.format("DD/MM/YYYY")) agentsEvents[valuesClickedItem.agent].cutElement(event);
+>>>>>>> origin/master
 
     if(events != undefined){
       $.each(events,function(key,event){

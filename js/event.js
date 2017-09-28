@@ -72,6 +72,7 @@ class Event {
   }
 
   setValues(values){
+<<<<<<< HEAD
     Event._updateValues(values);
   }
 
@@ -90,6 +91,11 @@ class Event {
       }
     });
 
+=======
+      this.changeHoraires(values.start,values.end);
+      this.client = values.clients;
+      this.comments = values.comments;
+>>>>>>> origin/master
   }
 
   setOId(o_id){
@@ -117,7 +123,11 @@ class Event {
   }
 
   _save(){
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> origin/master
     $.ajax({
       type: "POST",
       url:"",
