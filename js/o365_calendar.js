@@ -25,7 +25,7 @@ function office365_auth(){
       });*/
 
       //console.log(json_event(scheduler.getAgentsEvents()[0].events[0]));
-      updateEvent(accessToken,scheduler.getAgentsEvents()[0].events[0]);
+      //updateEvent(accessToken,scheduler.getAgentsEvents()[0].events[0]);
     }, function (error) {
       //AcquireToken Failure, send an interactive request.
       userAgentApplication.acquireTokenPopup(["User.Read","Calendars.ReadWrite"]).then(function (accessToken) {

@@ -30,37 +30,17 @@ toastr.options = {
     var height = undefined;
     var self = undefined;
     var scheduler = undefined;
-    var startDate = undefined;
     var dateRange = undefined;
     var daysRange = undefined;
     var hoursRange = undefined;
     var agentTable = undefined;
     var loader = undefined;
-    var agents = ["Benoit Rastier","Charles Cluzel","Matthieu Nowak","Nicolas Maniez","Florent Quétaud","Joel Pelhate","Nicolas Villain","Lionel Tarlet","Jerome Papuchon","Yoann Pachet"];
-    var colorArray = [{
-      id:1,
-      color:'#990000'
-    },{
-      id:2,
-      color:'#008080'
-    },{
-      id:3,
-      color:'#ff7f50'
-    },{
-      id:4,
-      color:'#87ceeb'
-    },{
-      id:5,
-      color:'#da70d6'
-    },{
-      id:6,
-      color:'#ffa500'
-    }];
-
     var selector = undefined;
     var selectorActive = false;
     var ttotal = 0;
     var valuesClickedItem = undefined;
+    var topics = undefined;
+    var week = undefined;
 
     //Event
     var direction = undefined;
@@ -73,6 +53,10 @@ toastr.options = {
     var oneHour = undefined;
     var oneQuarter = undefined;
 
+    /*Variable copier coller*/
+    var event_to_copy = undefined;
+    var width_copied_event = undefined;
+
 
     $.fn.scheduler = function() {
       self = this;
@@ -80,23 +64,46 @@ toastr.options = {
       //Récupération du loader
       loader = $(".loaders");
 
-      init(this);
+      //init(this);
+      week = moment().isoWeekday(1);
 
+      //Récupération des agents
+      agentsEvents = Agent.getAgents(week.format('DD/MM/YYYY'));
+      topics = agentsEvents.topics;
+      agentsEvents = agentsEvents.agents;
+
+      //agents[0].setIdPlanning(14);
+      topics.forEach(function(element,idx){
+        $('html > head').append("<style> .event[data-type='"+element.topic_id+"'] div {background : "+element.couleur+"} </style>");
+      });
 
       //Refresh planning when window resize
+      var callbackBindEvent = bindGlobalEvent;
+      var resizeTimeout;
       $( window ).resize(function() {
-        init();
+        clearTimeout(resizeTimeout)
+        resizeTimeout = setTimeout(function(){
+          init(null,callbackBindEvent);
+          callbackBindEvent = null;
+        },100);
       });
 
       /*GESTION DU MODAL*/
-      $('#editEventModal').on('shown.bs.modal', function() {
-           if(selector.css('display') != 'none') generate_new_modal_body();
-      });
+      /*$('#editEventModal').on('shown.bs.modal', function(e) {
+          valuesClickedItem;
+          if(selector.css('display') != 'none') generate_new_modal_body();
+      });*/
 
       return {
         'addEvent': addEvent,
-        'manageEvent': manageEvent,
-        'getAgentsEvents': getAgentsEvents
+        'addReccurence':addReccurence,
+        'managePresta': managePresta,
+        'getAgentsEvents': getAgentsEvents,
+        'getTopics': getTopics,
+        'refreshPlanning': refreshPlanning,
+        'renderPlannification':renderPlannification,
+        'renderPlannificationLine':renderPlannificationLine,
+        'instanciateDateTimePicker':instanciateDateTimePicker
       };
     };
 
@@ -104,52 +111,22 @@ toastr.options = {
       return agentsEvents;
     }
 
-    function init(obj){
+    function getTopics(){
+      return topics;
+    }
 
-      $.get("./assets/templates/scheduler.tmpl.html", function(data){
+    function init(obj,callback){
+
+      $.get("./planning/assets/templates/scheduler.tmpl.html", function(data){
 
         rowWidth = $(window).width() - 160;
         oneDay = rowWidth / 5;
         oneHour = oneDay / 10;
         oneQuarter = oneHour / 4;
 
-        agentsEvents = [];
+        height = ($(window).height() - 144) / agentsEvents.length;
 
-        var horaires = [
-          "04/09/2017 08:30-04/09/2017 12:30",
-          "04/09/2017 14:00-04/09/2017 17:45",
-          "05/09/2017 08:30-05/09/2017 12:30",
-          "05/09/2017 14:00-05/09/2017 17:45",
-          "06/09/2017 08:30-06/09/2017 12:30",
-          "06/09/2017 14:00-06/09/2017 17:45",
-          "07/09/2017 08:30-07/09/2017 12:30",
-          "07/09/2017 14:00-07/09/2017 17:45",
-          "08/09/2017 08:30-08/09/2017 12:30",
-          "08/09/2017 14:00-08/09/2017 17:45",
-        ];
-        //Remplissage des evenements
-        agents.forEach(function(element,idx){
-
-          agentsEvents.push(new Agent());
-
-
-          for(var i=0;i<10;i++){
-            color = colorArray[Math.floor(Math.random()*colorArray.length)];
-            agentsEvents[idx].addEvent({
-              id:i,
-              start:horaires[i%10].substr(0,horaires[i%10].indexOf('-')),
-              end:horaires[i%10].substr(horaires[i%10].indexOf('-')+1),
-              client:"LAMBDA",
-              type: color.id,
-              color: color.color,
-              comments: "Commentaires " + i
-            });
-          }
-
-        });
-
-
-        height = ($(window).height() - 144) / agents.length;
+        var t1 = performance.now();
 
         scheduler = $(data);
 
@@ -159,13 +136,14 @@ toastr.options = {
 
         $(".planning",scheduler).css({'height':$(window).height()-141});
 
+        var t1 = performance.now();
+
         //Set Hour
-        dateRange = $(".dateRange",scheduler);
-        daysRange = $(".days tbody tr",scheduler);
-        setDateRange(moment().isoWeekday(1));
+        dateRange = $(".dateRange");
+        daysRange = $(".days tbody tr");
+        setDateRange();
 
         //paintHours
-        hoursRange = $(".hours tbody tr",scheduler);
         paintHours();
 
         //Set agents list
@@ -175,24 +153,27 @@ toastr.options = {
         $(self).html(scheduler);
 
         //A ne pas faire lors d'un init
-        colorArray.forEach(function(element,idx){
-          $('html > head').append("<style> .event[data-type='"+element.id+"'] div {background : "+element.color+"} </style>");
-        });
 
         for(var i=0;i<agentsEvents.length;i++){
           refreshLine(i);
         }
 
-        //console.log('Total affichage : ' + ttotal);
-
-        bindGlobalEvent();
         bindEvent(scheduler);
 
-        tippy('.event');
+        //tippy('.event');
+
+        if(callback != null) callback();
 
       });
 
     };
+
+    function refreshPlanning(){
+      agentsEvents = Agent.getAgents(week.format("DD/MM/YYYY")).agents;
+      agentsEvents.forEach(function(value,key){
+        refreshLine(key);
+      });
+    }
 
     function refreshLine(agent){
 
@@ -305,13 +286,20 @@ toastr.options = {
 
       where.append('<div data-animation="perspective" data-arrow="true" \
       data-size="big" client="'+element.client+'" data-agent="'+agent+'" \
-      data-index="'+idx+'" data-type='+element.type+' class="event ui-widget ui-widget-content" \
-      style="height:'+topHeight.height+'px;top:'+topHeight.top+'px;left:'+left+'px;right:'+right+'px;"> \
-      <div style="background:linear-gradient(to top,'+element.color+','+LightenDarkenColor(element.color,50)+');"><p style="color:white"><b>'+start.format("HH:mm")+' - '+end.format("HH:mm")+'</b></p></div></div>');
+      data-index="'+idx+'" data-type='+element.topic_id+' class="event ui-widget ui-widget-content" \
+      style="height:'+topHeight.height+'px;top:'+topHeight.top+'px;left:'+left+'px;right:'+right+'px;background:linear-gradient(to top,'+element.topic__couleur+','+LightenDarkenColor(element.topic__couleur,50)+');"> \
+      <div id="contextMenu"><p style="color:white"><b>'+start.format("HH:mm")+' - '+end.format("HH:mm")+'</b></p> \
+      <img src="./planning/assets/status/'+element.status+'.gif"></div></div>');
 
     }
 
     function bindGlobalEvent(){
+
+      selector
+      .off("click")
+      .on("click",function(){
+        generate_new_modal_body();
+      });
 
       //Change range date
       $(".changeDate .btn",document)
@@ -319,12 +307,15 @@ toastr.options = {
       .on("click",function(){
         console.log("clicked");
         if($(this).attr('id') == "left"){
-          date = startDate.add(-7,'days');
-          setDateRange(date);
+          date = week.add(-7,'days');
+          setDateRange();
         } else {
-          date = startDate.add(7,'days');
-          setDateRange(date);
+          date = week.add(7,'days');
+          setDateRange();
         }
+
+        refreshPlanning();
+
       });
 
       //lorsque le clique de la souris est pressé
@@ -442,9 +433,65 @@ toastr.options = {
 
       });
 
+      //Sort agents
+      $( ".agents" ).sortable({
+        handle:".name",
+        start: function (e , ui){
+           $(ui.item).addClass("sorting");
+        },
+        stop: function(e, ui){
+
+          var t1 = performance.now();
+
+          loader.toggle();
+
+          //$(ui.item).removeClass("sorting");
+
+          var array = $(".agent").toArray();
+          var length = array.length;
+
+          var newAgentsEvents = [];
+
+          array.forEach(function(value,key){
+
+            //Staff_id
+            var staff_id = $(value).attr('id');
+
+            //Find concerned agent
+            var agent = agentsEvents.find(function(agent){
+              return agent.staff_id == staff_id;
+            });
+
+            //Change position in planning
+            agent.setIdPlanning(key+1);
+
+            newAgentsEvents.push(agent);
+
+          });
+
+          agentsEvents = newAgentsEvents;
+
+          //Refresh
+          agentsEvents.forEach(function(element,idx){
+            refreshLine(idx);
+          });
+
+          loader.toggle();
+          toastr.success("Listes des techniciens mise à jour.");
+
+        }
+      });
+
+
+      $.contextMenu({
+        selector: ".selector",
+        zIndex: 10000,
+        build: function($trigger, e) {
+          return getContextMenuBuild();
+        }
+      });
+
       //Add calendar event
-
-
     }
 
     function bindEvent(scheduler){
@@ -529,10 +576,10 @@ toastr.options = {
               //removeEventRow(agent);
 
               //Récupération de l'événement
-              var event = infos.previousAgent != agent ? putEventOnNewAgent(infos.id,infos.previousAgent,agent) : agentsEvents[agent].events[infos.id];
+              var event = agentsEvents[infos.previousAgent].events[infos.id];
 
               //Mise a jour de l'element et refresh des lignes
-              majAndRefreshAgents(infos,event,agent,infos.previousAgent);
+              majAndRefreshAgents(infos,event,agent);
 
             } catch (e) {
 
@@ -556,7 +603,11 @@ toastr.options = {
         });
 
         $(elem).on('click',function(e){
-          $('#editEventModal').modal('show');
+
+          $('#editEventModal').modal({
+            backdrop: 'static',
+            keyboard: false
+          });
           $(elem).css('z-index','auto');
 
           valuesClickedItem = {
@@ -564,16 +615,54 @@ toastr.options = {
             index:parseInt($(elem).attr('data-index'))
           };
 
-          generate_existing_modal_body()
+          generate_existing_modal_body();
+
+        });
+
+        var agent = $(elem).attr("data-agent");
+        var event = agentsEvents[agent].events[$(elem).attr("data-index")];
+        $(elem).contextMenu({
+          selector: "#contextMenu",
+          zIndex: 10000,
+          build: function($trigger, e) {
+            return getContextMenuBuild();
+          }
         });
 
       });
 
     };
 
-    function setDateRange(date){
-      startDate = moment(date);
-      date = date.format("DD MMM YYYY") + " - " + date.add(4,'days').format("DD MMM YYYY");
+    function getContextMenuBuild(){
+      return {
+        items: {
+            "fold1": {
+            "name": "Etat",
+                "items": {
+                    "fold1-key1": {"name": "Prévisionelle", "icon": event.status == 1 ? "fa-check"  : "", callback: function(){ event._changeStatus(1); refreshPlanning(); }},
+                    "fold1-key2": {"name": "Donnée", "icon": event.status == 2 ? "fa-check"  : "", callback: function(){ event._changeStatus(2); refreshPlanning(); }},
+                    "fold1-key3": {"name": "Validée", "icon": event.status == 3 ? "fa-check"  : "", callback: function(){ event._changeStatus(3); refreshPlanning(); }}
+                }
+            },
+            "sep1": "---------",
+            "fold2": {
+            "name": "Envoyez un mail",
+                "items": {
+                    "fold2-key1": {"name": "Aux techniciens"},
+                    "fold2-key2": {"name": "Au commercial"},
+                    "fold2-key3": {"name": "Au client"}
+                }
+            },
+            "sep2": "---------",
+            "copy" : {name: "Copier", icon: "copy", callback: copyElement},
+            "paste": {name: "Coller", icon: "paste", callback: pasteElement},
+            "delete": {name: "Supprimer cette plannification", icon: "delete", callback: removeElement}
+          }
+      }
+    }
+
+    function setDateRange(){
+      var date = week.format("DD MMM YYYY") + " - " + moment(week).add(4,'days').format("DD MMM YYYY");
       dateRange.html(date);
       setDays();
     };
@@ -584,21 +673,23 @@ toastr.options = {
       var width = Math.trunc(rowWidth / 5);
 
       for(var i = 0;i<5;i++){
-        daysRange.append("<td width='"+width+"px'>"+moment(startDate).add(i,"days").date()+"</td>")
+        daysRange.append("<td width='"+width+"px'>"+moment(week).add(i,"days").date()+"</td>")
       }
     }
 
     function setAgentList(){
       var grid = paintGrid();
-      agents.forEach(function(element){
+      agentsEvents.forEach(function(element){
         var string = "";
-        string += "<tr class='agent' style='height:"+height+"px' data-agent='"+element+"'><td unselectable='on' onselectstart='return false;' onmousedown='return false;' class='name'>"+element+"</td> \
+        string += "<tr class='agent' id='"+element.staff_id+"' style='height:"+height+"px' data-agent='"+element.firstname + " " +  element.lastname +"'><td unselectable='on' onselectstart='return false;' onmousedown='return false;' class='name'>"+element.firstname + " " +  element.lastname +"</td> \
         <td class='grid'><table><tbody class='tRow'><tr>"+grid+"</tr></tbody></table></td></tr>";
         agentTable.append(string);
       });
     }
 
     function paintHours(){
+      $(".hours tbody tr").empty();
+
       var i = moment('08','hh');
       var string = "";
 
@@ -615,7 +706,7 @@ toastr.options = {
         string += "</tr></tbody></table></td>";
         i.set('hour',8);
       }
-      hoursRange.append(string);
+      $(".hours tbody tr").append(string);
     }
 
     function paintGrid(){
@@ -671,11 +762,11 @@ toastr.options = {
       });
     }
 
-    function putEventOnNewAgent(id,previousAgent,agent){
+    /*function putEventOnNewAgent(id,previousAgent,agent){
       agentsEvents[agent].addEvent(agentsEvents[previousAgent].events[id]);
       agentsEvents[previousAgent].removeEvent(id);
       return agentsEvents[agent].events[agentsEvents[agent].events.length - 1];
-    }
+    }*/
 
     //calcule d'une heure
     function getMomentWithLeft(left,step){
@@ -760,7 +851,8 @@ toastr.options = {
         }
       }
 
-      return {height : (height / positionningArray.length) * numberOfRow,
+
+      return {height : ((height * 0.9) / positionningArray.length) * numberOfRow,
               top : (height / positionningArray.length) * beginningRow };
     }
 
@@ -793,22 +885,17 @@ toastr.options = {
       $('p b',element).html(texte);
     }
 
-    function majAndRefreshAgents(infos,event,agent,previousAgent){
+    function majAndRefreshAgents(infos,event,agent){
       //Mise a jour des horaires
       var start = getMomentWithLeft(infos.offset.left - 160);
       var end = addDurationToMoment(start,infos.width);
-      event.changeHoraires(
-        start,
-        end
-      );
-      if(start.format("DD/MM/YYYY") != end.format("DD/MM/YYYY")) agentsEvents[agent].cutElement(event);
 
-      //Rafraichissement des différents
-      refreshLine(agent);
-      if(previousAgent != null && previousAgent != agent){
-         //removeEventRow(previousAgent);
-         refreshLine(previousAgent);
-      }
+
+      Event._changeHoraires(event.e_id,start,end);
+      Event._setStaff(event.e_id,agentsEvents[agent].staff_id);
+
+      //Rafraichissement du planning
+      refreshPlanning();
     }
 
     function LightenDarkenColor(col, amt) {
@@ -840,86 +927,214 @@ toastr.options = {
       return (usePound?"#":"") + (g | (b << 8) | (r << 16)).toString(16);
 
   }
-
   /*GESTION DU MODAL*/
   function generate_new_modal_body(){
 
     //Set Start Date
     var start = getMomentWithLeft(selector.offset().left - 158);
-    $('#eventStart').data("DateTimePicker").date(start);
 
-    //Set End Date
     var duration = selector.width() - 2;
     //var duration = rowWidth - Math.ceil(parseFloat(selector.css('right'))) - Math.ceil(parseFloat(selector.css('left')));
     var end = addDurationToMoment(start,duration);
-    $('#eventEnd').data("DateTimePicker").date(end);
+
+    var agent = agentsEvents[getAgent(selector.offset().top)];
+
+    //RENDER plannification
+    renderPlannification(agent,start,end);
 
     //Affichage du titre
     $('#title').html('Ajout d\'un événement');
+
+    //$('#editEventModal').modal('show');
 
   }
 
   function generate_existing_modal_body(){
     var event = agentsEvents[valuesClickedItem.agent].events[valuesClickedItem.index];
-    $('#eventStart').data("DateTimePicker").date(event.start);
-    $('#eventEnd').data("DateTimePicker").date(event.end);
+    /*$('#eventStart').data("DateTimePicker").date(event.start);
+    $('#eventEnd').data("DateTimePicker").date(event.end);*/
     $('#client').val(event.client);
     $('#comments').val(event.comments);
     $('#title').html('Modification d\'un événement');
+    $('#manageEvent').attr('p_id',event.p_id);
+
+    //Récupération des horaires de chaque événement de la plannification
+
+    var staffpresta = Agent._getStaffPresta(event.p_id);
+    $.each(staffpresta,function(key,value){
+
+      renderPlannification(value,null,null,value.events);
+
+    });
+
   }
 
   //Ajout d'un événement
-  function addEvent(values){
-    //Obtention de l'agent sur lequel on ajoute l'evenement
-    var agent = getAgent($('.selector').offset().top);
+  function addEvent(staff_id,values,callback){
+    var events = Agent._createEvent(staff_id,values);
 
-    //Temporaire
-    var color = colorArray[Math.floor(Math.random()*colorArray.length)];
+    if(callback != null) callback(events);
+  }
 
-    //Ajout d'un événement.
-    var event = agentsEvents[agent].createEvent({
-      id:top,
-      start:values.start,
-      end:values.end,
-      client:values.client,
-      type:color.id,
-      color:color.color
+  function addReccurence(staff_id,values,callback){
+    var events = Agent._createReccurence(staff_id,values);
+
+    if(callback != null) callback(events);
+  }
+
+  function managePresta(values){
+
+    Event._updateValues(values);
+
+  }
+
+  /*EVENEMENTS CONTEXT MENU*/
+  function copyElement(itemKey, opt){
+    event_to_copy = $(opt.context);
+    var agent_id = event_to_copy.attr('data-agent');
+    var event_id = event_to_copy.attr('data-index');
+    width_copied_event = event_to_copy.width();
+
+    event_to_copy = agentsEvents[agent_id].events[event_id];
+
+    //toastr.success("Copie de l'élément réussi");
+  }
+
+  function pasteElement(){
+
+    //Date de commencement
+    var start = getMomentWithLeft($('.selector').offset().left - 158);
+    var end = addDurationToMoment(start,width_copied_event);
+
+    var staff_id = agentsEvents[getAgent($('.selector').offset().top)].staff_id;
+
+    addEvent(staff_id,{
+      start:start.format("DD/MM/YYYY HH:mm"),
+      end:end.format("DD/MM/YYYY HH:mm"),
+      topic_id:event_to_copy.topic_id,
+      client:event_to_copy.client,
+      comments:event_to_copy.comments
     });
 
-    //Découpage de l'événement sur plusieurs jours
-    if(event.start.format("DD/MM/YYYY") != event.end.format("DD/MM/YYYY")) agentsEvents[agent].cutElement(event);
+    refreshPlanning();
 
-    //Rafraichissement de la ligne
-    refreshLine(agent);
+    toastr.success("Copie effectué");
 
-    //Affichage du alerte
-    toastr.success('Evénement ajouté.');
-
-    //Effacement du selector
-    setSelectorDisplayed('none');
   }
 
-  function manageEvent(values){
+  function removeElement(itemKey, opt){
 
-    //Récupération de l'événement modifié
-    var event = agentsEvents[valuesClickedItem.agent].events[valuesClickedItem.index];
+    /*var callback = function(e){
+      if($(e.target).hasClass('yesBtn')){
+        var event_to_delete = $(opt.$trigger);
+        var agent_id = parseInt(event_to_delete.attr('data-agent'));
+        var event_id = parseInt(event_to_delete.attr('data-index'));
 
-    //Changements des informations de l'événement
-    event.changeHoraires(
-      moment(values.start,"DD/MM/YYYY HH:mm"),
-      moment(values.end,"DD/MM/YYYY HH:mm")
-    )
-    event.setClient(values.client);
+        agentsEvents[agent_id]._removeEvent(event_id);
 
-    //Découpage de l'événement sur plusieurs jours
-    if(event.start.format("DD/MM/YYYY") != event.end.format("DD/MM/YYYY")) agentsEvents[valuesClickedItem.agent].cutElement(event);
+        refreshLine(agent_id);
+      }
+    }*/
+    var elementTriggered = $(opt.context);
 
-    //Rafraichissement de la ligne
-    refreshLine(valuesClickedItem.agent);
+    var toast = toastr.warning('<div><div><button type="button" id="yesBtn" class="btn btn-danger">Supprimer</button><button type="button" id="noBtn" class="btn btn-primary" style="margin: 0 8px 0 8px">Annuler</button></div>',
+                   'Voulez vous vraiment supprimer cette plannification ?',
+                   {"closeButton": false,
+                    "debug": false,
+                    "newestOnTop": false,
+                    "progressBar": false,
+                    "positionClass": "toast-bottom-center",
+                    "preventDuplicates": false,
+                    "tapToDismiss": false,
+                    "onclick": null,
+                    "onShown": function(){
+                      $('#yesBtn').click(function(){
+                        var agent_id = parseInt(elementTriggered.attr('data-agent'));
+                        var event_id = parseInt(elementTriggered.attr('data-index'));
 
-    //Affichage du alerte
-    toastr.success('Evénement modifié');
+                        agentsEvents[agent_id]._removeEvent(event_id);
+
+                        refreshLine(agent_id);
+
+                        $(toast).fadeOut(1000, function(){ $(toast).remove(); })
+                      });
+
+                      $('#noBtn').click(function(){
+                        $(toast).fadeOut(1000, function(){ $(toast).remove(); })
+                      });
+                    },
+                    "showDuration": "300",
+                    "hideDuration": "1000",
+                    "timeOut": "0",
+                    "extendedTimeOut": "0",
+                    "showEasing": "swing",
+                    "hideEasing": "linear",
+                    "showMethod": "fadeIn",
+                    "hideMethod": "fadeOut"});
+
+    //$('#yesBtn').click(function())
+
   }
 
+  function renderPlannification(agent,start,end,events){
+
+    var staff_id = agent.staff_id;
+    var staff__avatar = agent.staff__avatar != null ? agent.staff__avatar : agent.avatar;
+    var staff__firstname = agent.staff__firstname != null ? agent.staff__firstname : agent.firstname;
+    var staff__lastname = agent.staff__lastname != null ? agent.staff__lastname : agent.lastname;
+
+    $('#groupTechs ul li:last-child').before("<li id='s"+agent.staff_id+"' style=\"background-image: url('../assets/avatar/"+staff__avatar+"')\"></li>");
+
+    var div = "<div style='display:none' class='horaires col-md-12' id='s"+staff_id+"' class='form-group col-md-12'> \
+    <div class='planifInfo col-md-12'><img src='../assets/avatar/"+staff__avatar+"'> \
+    <h4>Plannification pour " + staff__firstname + " " + staff__lastname + "</h4></div>";
+
+    div += "<div class='fixedThead col-md-12'><table class='table'><thead><th width='30%'>Début</th><th width='30%'>Fin</th><th width='20%'>Sauvegarder</th><th width='20%'>Supprimer</th></thead></table></div>\
+    <div class='col-md-12'><div class='scrollableTable'><table class='table'><thead><th width='30%'></th><th width='30%'></th><th width='20%'></th><th width='20%'></th></thead><tbody>";
+
+    if(events != undefined){
+      $.each(events,function(key,event){
+        div += renderPlannificationLine(event.start,event.end,event.e_id);
+      });
+    } else {
+      div += renderPlannificationLine(start.format("YYYY/MM/DD HH:mm"),end.format("YYYY/MM/DD HH:mm"));
+    }
+
+    div += "</tbody></table></div><btn id='addPlannif' class='btn btn-success pull-right'>Ajouter une plannification</btn></div></div>";
+
+    $('.modal-body').append(div);
+
+    instanciateDateTimePicker();
+
+  }
+
+
+  function renderPlannificationLine(start,end,e_id){
+
+    return "<tr id='"+e_id+"'><td> \
+      <input required type='text' data-default-date='"+start+"' data-required-error='Selectionner une date de début' class='form-control datetimepicker' id='eventStart' placeholder='Date de début'> \
+      </td> \
+      <td> \
+        <input required type='text' data-default-date='"+end+"' data-required-error='Selectionner une date de fin' class='form-control datetimepicker' id='eventEnd' placeholder='Date de fin'> \
+      </td> \
+      <td></td> \
+      <td><btn class='btn btn-danger'><span class='glyphicon glyphicon-remove'></span></btn></td></tr>";
+  }
+
+  function instanciateDateTimePicker(){
+
+    $('.datetimepicker').each(function(i,e){
+      date = $(e).attr('data-default-date') != 'null' ? $(e).attr('data-default-date') : moment();
+
+      $(e).datetimepicker({
+        stepping:15,
+        format:"DD/MM/YYYY HH:mm",
+        locale: 'fr',
+        defaultDate: date,
+        daysOfWeekDisabled: [0,6]
+      });
+    });
+
+  }
 
 }( jQuery ));
