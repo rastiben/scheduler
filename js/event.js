@@ -72,7 +72,6 @@ class Event {
   }
 
   setValues(values){
-<<<<<<< HEAD
     Event._updateValues(values);
   }
 
@@ -91,18 +90,33 @@ class Event {
       }
     });
 
-=======
-      this.changeHoraires(values.start,values.end);
-      this.client = values.clients;
-      this.comments = values.comments;
->>>>>>> origin/master
   }
 
   setOId(o_id){
     this.o_id = o_id;
   }
 
-  _changeStatus(status){
+  _changeEStatus(status){
+
+    var self = this;
+
+    $.ajax({
+      type: "POST",
+      async: false,
+      url:"./ajax.php/scheduler/evenements/"+self.e_id+"/status/"+status,
+      contentType: "application/json; charset=utf-8",
+      success : function(data){
+        self.status = status;
+        toastr.success('Status modifié');
+      },
+      error : function(error){
+
+      }
+    });
+
+  }
+
+  _changePStatus(status){
 
     var self = this;
 
@@ -123,11 +137,7 @@ class Event {
   }
 
   _save(){
-<<<<<<< HEAD
 
-=======
-    
->>>>>>> origin/master
     $.ajax({
       type: "POST",
       url:"",
@@ -152,6 +162,23 @@ class Event {
       contentType: "application/json; charset=utf-8",
       success : function(data){
 
+      },
+      error : function(error){
+
+      }
+    });
+
+  }
+
+  static _updateEValues(values,callback){
+
+    $.ajax({
+      type: "POST",
+      url:"./ajax.php/scheduler/evenements/"+values.e_id+"/update_values",
+      data : JSON.stringify(values),
+      contentType: "application/json; charset=utf-8",
+      success : function(data){
+        if(callback != undefined) callback();
       },
       error : function(error){
 

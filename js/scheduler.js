@@ -103,7 +103,9 @@ toastr.options = {
         'refreshPlanning': refreshPlanning,
         'renderPlannification':renderPlannification,
         'renderPlannificationLine':renderPlannificationLine,
-        'instanciateDateTimePicker':instanciateDateTimePicker
+        'renderEditPlannificationLine': renderEditPlannificationLine,
+        'instanciateDateTimePicker':instanciateDateTimePicker,
+        'getTechs':getTechs
       };
     };
 
@@ -625,7 +627,7 @@ toastr.options = {
           selector: "#contextMenu",
           zIndex: 10000,
           build: function($trigger, e) {
-            return getContextMenuBuild();
+            return getContextMenuBuild(event);
           }
         });
 
@@ -633,16 +635,29 @@ toastr.options = {
 
     };
 
-    function getContextMenuBuild(){
+    function getContextMenuBuild(event){
       return {
         items: {
             "fold1": {
-            "name": "Etat",
-                "items": {
-                    "fold1-key1": {"name": "Prévisionelle", "icon": event.status == 1 ? "fa-check"  : "", callback: function(){ event._changeStatus(1); refreshPlanning(); }},
-                    "fold1-key2": {"name": "Donnée", "icon": event.status == 2 ? "fa-check"  : "", callback: function(){ event._changeStatus(2); refreshPlanning(); }},
-                    "fold1-key3": {"name": "Validée", "icon": event.status == 3 ? "fa-check"  : "", callback: function(){ event._changeStatus(3); refreshPlanning(); }}
+              "name": "Etat",
+              "items": {
+                "fold3": {
+                "name": "De l'événement",
+                  "items": {
+                      "fold3-key1": {"name": "Prévisionelle", "icon": event.status == 1 ? "fa-check"  : "", callback: function(){ event._changeEStatus(1); refreshPlanning(); }},
+                      "fold3-key2": {"name": "Donnée", "icon": event.status == 2 ? "fa-check"  : "", callback: function(){ event._changeEStatus(2); refreshPlanning(); }},
+                      "fold3-key3": {"name": "Validée", "icon": event.status == 3 ? "fa-check"  : "", callback: function(){ event._changeEStatus(3); refreshPlanning(); }}
+                  }
+                },
+                "fold4": {
+                "name": "De la prestation",
+                  "items": {
+                      "fold4-key1": {"name": "Prévisionelle", callback: function(){ event._changePStatus(1); refreshPlanning(); }},
+                      "fold4-key2": {"name": "Donnée", callback: function(){ event._changePStatus(2); refreshPlanning(); }},
+                      "fold4-key3": {"name": "Validée", callback: function(){ event._changePStatus(3); refreshPlanning(); }}
+                  }
                 }
+              }
             },
             "sep1": "---------",
             "fold2": {
@@ -681,7 +696,7 @@ toastr.options = {
       var grid = paintGrid();
       agentsEvents.forEach(function(element){
         var string = "";
-        string += "<tr class='agent' id='"+element.staff_id+"' style='height:"+height+"px' data-agent='"+element.firstname + " " +  element.lastname +"'><td unselectable='on' onselectstart='return false;' onmousedown='return false;' class='name'>"+element.firstname + " " +  element.lastname +"</td> \
+        string += "<tr class='agent' id='"+element.staff_id+"' style='height:"+height+"px' data-agent='"+element.firstname + " " +  element.lastname +"'><td unselectable='on' onselectstart='return false;' onmousedown='return false;' class='name'><div class='infoS'><img src='../assets/avatar/"+element.avatar+"'><p>"+element.firstname + "<br>" +  element.lastname +"</p></div></td> \
         <td class='grid'><table><tbody class='tRow'><tr>"+grid+"</tr></tbody></table></td></tr>";
         agentTable.append(string);
       });
@@ -961,11 +976,10 @@ toastr.options = {
     //Récupération des horaires de chaque événement de la plannification
 
     var staffpresta = Agent._getStaffPresta(event.p_id);
-    $.each(staffpresta,function(key,value){
+    //var staffpresta = Object.keys(staffpresta).map(key => { return staffpresta[key]; });
 
-      renderPlannification(value,null,null,value.events);
+    renderPlannification(staffpresta,null,null);
 
-    });
 
   }
 
@@ -1076,56 +1090,107 @@ toastr.options = {
 
   }
 
-  function renderPlannification(agent,start,end,events){
+  function renderPlannification(agents,start,end){
 
-    var staff_id = agent.staff_id;
-    var staff__avatar = agent.staff__avatar != null ? agent.staff__avatar : agent.avatar;
-    var staff__firstname = agent.staff__firstname != null ? agent.staff__firstname : agent.firstname;
-    var staff__lastname = agent.staff__lastname != null ? agent.staff__lastname : agent.lastname;
+    var div = "<div class='horaires col-md-12' style='display:none'>";
 
-    $('#groupTechs ul li:last-child').before("<li id='s"+agent.staff_id+"' style=\"background-image: url('../assets/avatar/"+staff__avatar+"')\"></li>");
+    div += "<div class='fixedThead col-md-12'><table class='table'><thead><th width='20%'>Technicien</th><th width='20%'>Début</th><th width='20%'>Fin</th><th width='10%'>Etat</th><th width='15%'>Modifier</th><th width='15%'>Supprimer</th></thead></table></div>\
+    <div class='col-md-12'><div class='scrollableTable'><table class='table'><thead><th width='20%'></th><th width='20%'></th><th width='20%'></th><th width='10%'></th><th width='15%'></th><th width='15%'></th></thead><tbody>";
 
-<<<<<<< HEAD
-    var div = "<div style='display:none' class='horaires col-md-12' id='s"+staff_id+"' class='form-group col-md-12'> \
-    <div class='planifInfo col-md-12'><img src='../assets/avatar/"+staff__avatar+"'> \
-    <h4>Plannification pour " + staff__firstname + " " + staff__lastname + "</h4></div>";
+    /*events = agents.map(key => { return key.events; });
+    events = [].concat.apply([], events);*/
 
-    div += "<div class='fixedThead col-md-12'><table class='table'><thead><th width='30%'>Début</th><th width='30%'>Fin</th><th width='20%'>Sauvegarder</th><th width='20%'>Supprimer</th></thead></table></div>\
-    <div class='col-md-12'><div class='scrollableTable'><table class='table'><thead><th width='30%'></th><th width='30%'></th><th width='20%'></th><th width='20%'></th></thead><tbody>";
-=======
-    //Changements des informations de l'événement et values(values);
-    event.setValues(values);
-    //Découpage de l'événement sur plusieurs jours
-    if(event.start.format("DD/MM/YYYY") != event.end.format("DD/MM/YYYY")) agentsEvents[valuesClickedItem.agent].cutElement(event);
->>>>>>> origin/master
+    if(Array.isArray(agents)){
+      agents.forEach(function(event,key){
 
-    if(events != undefined){
-      $.each(events,function(key,event){
-        div += renderPlannificationLine(event.start,event.end,event.e_id);
+        var staff_id = event.staff_id;
+        var staff__avatar = event.staff__avatar != null ? event.staff__avatar : event.avatar;
+        var staff__firstname = event.staff__firstname != null ? event.staff__firstname : event.firstname;
+        var staff__lastname = event.staff__lastname != null ? event.staff__lastname : event.lastname;
+
+        div += renderPlannificationLine(event.e_id,
+                                        staff_id,
+                                        event.status,
+                                        event.start,
+                                        event.end);
+
       });
     } else {
-      div += renderPlannificationLine(start.format("YYYY/MM/DD HH:mm"),end.format("YYYY/MM/DD HH:mm"));
+      var staff_id = agents.staff_id;
+      var staff__avatar = agents.staff__avatar != null ? agents.staff__avatar : agents.avatar;
+      var staff__firstname = agents.staff__firstname != null ? agents.staff__firstname : agents.firstname;
+      var staff__lastname = agents.staff__lastname != null ? agents.staff__lastname : agents.lastname;
+
+      div += renderPlannificationLine('',
+                                      staff_id,
+                                      1,
+                                      start,
+                                      end);
     }
 
     div += "</tbody></table></div><btn id='addPlannif' class='btn btn-success pull-right'>Ajouter une plannification</btn></div></div>";
-
     $('.modal-body').append(div);
 
-    instanciateDateTimePicker();
+    //instanciateDateTimePicker();
 
   }
 
 
-  function renderPlannificationLine(start,end,e_id){
+  function renderPlannificationLine(e_id,staff_id,status,start,end){
 
-    return "<tr id='"+e_id+"'><td> \
-      <input required type='text' data-default-date='"+start+"' data-required-error='Selectionner une date de début' class='form-control datetimepicker' id='eventStart' placeholder='Date de début'> \
+    if(e_id == undefined || e_id == null) e_id = '';
+
+    //Récupération de l'avatar
+    var agent = agentsEvents.filter(key => key.staff_id == staff_id)[0];
+    name = agent.firstname + " " + agent.lastname;
+    avatar = agent != undefined ? agent.avatar : '';
+
+    return "<tr id='"+e_id+"'> \
+      <td id='"+staff_id+"'> \
+        <p><img src='../assets/avatar/"+avatar+"'><span>"+ name +"</span></p>\
       </td> \
       <td> \
-        <input required type='text' data-default-date='"+end+"' data-required-error='Selectionner une date de fin' class='form-control datetimepicker' id='eventEnd' placeholder='Date de fin'> \
+        <p>"+moment(start,"YYYY-MM-DD HH:mm").format("DD MMM YYYY HH:mm")+"</p>\
       </td> \
-      <td></td> \
-      <td><btn class='btn btn-danger'><span class='glyphicon glyphicon-remove'></span></btn></td></tr>";
+      <td> \
+          <p>"+moment(end,"YYYY-MM-DD HH:mm").format("DD MMM YYYY HH:mm")+"</p>\
+      </td> \
+      <td id='"+status+"'>"+ getStatus(status) +"</td> \
+      <td class='text-center'><btn class='editP btn btn-primary btn-sm'><span class='glyphicon glyphicon-edit'></span></btn></td> \
+      <td class='text-center'><btn class='removeP btn btn-danger btn-sm'><span class='glyphicon glyphicon-trash'></span></btn></td></tr>";
+  }
+
+  function renderEditPlannificationLine(tr){
+
+    var tech = $('td:nth-child(1)',tr).attr('id');
+    var states = ["Prévisionelle","Donnée","Validée"];
+
+    var techs = getTechs(tech);
+
+    var start = moment($('td:nth-child(2)',tr).html(),"DD MMM YYYY HH:mm").format("YYYY-MM-DD HH:mm");
+    var end = moment($('td:nth-child(3)',tr).html(),"DD MMM YYYY HH:mm").format("YYYY-MM-DD HH:mm");
+
+    var state = $('td:nth-child(4)',tr).html();
+    var status = states.map(function(key,index){
+      var selected = (key == state ? "selected='selected'" : "" );
+      return '<option id="'+(index+1)+'" '+selected+'>' + key + '</option>';
+    });
+
+    return " \
+      <td id='"+tech+"'><select>"+techs+"</select></td> \
+      <td><input class='datetimepicker' data-default-date='"+start+"'></td> \
+      <td><input class='datetimepicker' data-default-date='"+end+"'></td> \
+      <td><select>"+status+"</select></td> \
+      <td class='text-center'><btn class='saveP btn btn-success btn-sm'><span class='glyphicon glyphicon-ok'></span></btn></td> \
+      <td class='text-center'><btn class='cancelP btn btn-primary btn-sm'><span class='glyphicon glyphicon-remove'></span></btn></td></tr>";
+
+  }
+
+  function getTechs(tech){
+    return agentsEvents.map(key => {
+      var selected = (key.staff_id == tech ? "selected='selected'" : "" );
+      return '<option id="'+key.staff_id+'" '+selected+'>' + key.firstname + ' ' + key.lastname + '</option>';
+    });
   }
 
   function instanciateDateTimePicker(){
@@ -1142,6 +1207,20 @@ toastr.options = {
       });
     });
 
+  }
+
+  function getStatus(id){
+    switch (id) {
+      case 1:
+        return "Prévisionelle"
+        break;
+      case 2:
+        return "Donnée"
+        break;
+      case 3:
+        return "Validée"
+        break;
+    }
   }
 
 }( jQuery ));

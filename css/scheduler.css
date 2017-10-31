@@ -88,6 +88,25 @@ table td{
   border: 1px solid lightgray;
 }
 
+.agent .infoS{
+}
+
+.agent .infoS img{
+  height: 50px;
+  border-radius: 50%;
+  margin-right: 10px;
+  float: left;
+  margin-left: 10px;
+  height: 50px;
+  width: 50px;
+}
+
+.agent .infoS p{
+  height: 50px;
+  margin: 0px;
+  padding-top: 5px;
+}
+
 .agent .name{
   width: 160px;
   min-width: 160px;
@@ -400,7 +419,6 @@ table td{
 }
 
 .modal-body .horaires table td{
-  text-align: center;
   padding: 5px !important;
   /*border:none !important;*/
 }
@@ -415,10 +433,22 @@ table td{
 
 .fixedThead th{
   display: inline-block !important;
+  padding: 0px !important;
 }
 
 .scrollableTable thead th{
   border: none !important;
+}
+
+.scrollableTable tr p span{
+  vertical-align: bottom;
+  margin-left: 5px;
+}
+
+.scrollableTable tr p img{
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
 }
 
 .horaires{
@@ -589,7 +619,8 @@ table td{
 #link,
 #daysRecurrence,
 #datesFinReccurence,
-#nbOfWeeks{
+#nbOfWeeks,
+#staffReccurence{
   padding: 0px;
   margin-bottom: 15px;
 }
@@ -614,7 +645,7 @@ label{
   border-radius: 50%;
   cursor: pointer;
   height: 28px;
-  left: 0;
+  margin-left: -21px;
   position: absolute;
   top: 0;
   width: 28px;
@@ -645,4 +676,8 @@ label{
 
 .round input[type="checkbox"]:checked + label:after {
   opacity: 1;
+}
+
+.dropdown-menu{
+  z-index: 1000000 !important;
 }
